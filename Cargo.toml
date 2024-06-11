@@ -1,0 +1,67 @@
+[package]
+name = "cosmo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fastrand = "2.1.0"
+bevy-inspector-egui = "0.24.0"
+bevy_gltf_components = "0.5"
+bevy_registry_export = "0.3"
+bevy_rapier3d = { version = "0.26.0",  features = [ "simd-stable", "debug-render-3d" ]  }
+bevy_panorbit_camera= "0.18.2"
+bevy_hanabi = {version = "0.11.0" , default-features = false , features = ["3d"] }
+
+
+
+
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
+
+# [profile.release]    # wasm less size 
+# opt-level = 'z'
+
+[dependencies.bevy]
+version="0.13.2"
+default-features = false
+features = [
+    # default ---
+    # "animation",
+    "bevy_asset",
+    # "bevy_audio",
+    # "bevy_gilrs",
+    # "bevy_scene",
+    "bevy_winit",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_gltf",
+    "bevy_render",
+    # "bevy_sprite",
+    # "bevy_text",
+    "bevy_ui",
+    "multi-threaded",
+    "png",
+    # "jpeg",
+    #"ktx2",   # Preferred format for GPU textures
+    #"zstd",   # ZSTD compression support in KTX2 files
+    # "hdr",
+    # "vorbis",
+    # "x11",
+    "bevy_gizmos",
+    # "android_shared_stdcxx",
+    "tonemapping_luts",
+    "default_font",
+    # "webgl2",
+    
+    # optional ---
+    "dynamic_linking",  #FOR DEBUG!!!
+]
+
+#wasm-bindgen --no-typescript --target web  --out-dir d:\tmp\out  --out-name "fontain"  ./target/wasm32-unknown-unknown/release/fontain.wasm
