@@ -9,11 +9,11 @@ mod camera;
 mod env;
 mod drone;
 mod ui;
-mod particles;
+mod effects;
 mod asteroids;
 mod docks;
 mod missile;
-
+mod target_select;
 // ===============
 
 #[derive(Component)]
@@ -49,6 +49,7 @@ fn main() {
         missile::MissilePlugin,
         asteroids::AsteroidsPlugin,
         docks::DocksPlugin,
+        target_select::TargetSelectPlugin,
         // WorldInspectorPlugin::new(),
         ComponentsFromGltfPlugin{legacy_mode: false},
         ExportRegistryPlugin::default(),

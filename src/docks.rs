@@ -7,7 +7,7 @@ use bevy::time::common_conditions::on_timer;
 use bevy_hanabi::EffectProperties;
 use bevy_hanabi::{ParticleEffect, ParticleEffectBundle, EffectAsset};
 use bevy_rapier3d::prelude::*;
-use crate::particles::*;
+use crate::effects::*;
 use crate::Target;
 
 pub struct DocksPlugin;
@@ -32,32 +32,77 @@ pub struct Aura(Entity);
 
 // ---
 
+// fn spawn (
+//     mut commands: Commands,
+//     asset: ResMut<AssetServer>,
+//     mut effects: ResMut<Assets<EffectAsset>>,
+// ) {
+//     let dock_handle = asset.load("models/dock.glb#Scene0");
+
+//     for i in 0..2 {
+//         let dock_position = vec3(i as f32  * 100. + 100., 15., 0.);
+//         let mut aura_id = Entity::PLACEHOLDER;
+    
+//         let dock_id = commands.spawn((
+//             SceneBundle {
+//                 scene: dock_handle.clone(),
+//                 transform: Transform::from_translation(dock_position),
+//                 ..default()
+//             },
+//             Dock,
+//             RigidBody::Dynamic,
+//             GravityScale(0.),
+//             Collider::cuboid(7.5, 2.5, 7.5),
+//         ))
+//         .with_children(|p| {
+//             aura_id = p.spawn(
+//                 ParticleEffectBundle {
+//                     effect: ParticleEffect::new(effects.add(dock_aura_effect())),
+//                     ..default()
+//                 }
+//             ).id();
+//         }).id()
+//         ;    
+//         commands.entity(dock_id).insert(Aura(aura_id));
+//         if i == 0 {
+//             commands.entity(dock_id).insert(Target);
+//         }
+//     }
+
+// }
+
 fn spawn (
     mut commands: Commands,
-    asset: ResMut<AssetServer>,
     mut effects: ResMut<Assets<EffectAsset>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>
 ) {
-    let dock_handle = asset.load("models/dock.glb#Scene0");
 
     for i in 0..2 {
         let dock_position = vec3(i as f32  * 100. + 100., 15., 0.);
         let mut aura_id = Entity::PLACEHOLDER;
     
         let dock_id = commands.spawn((
-            SceneBundle {
-                scene: dock_handle.clone(),
+            PbrBundle {
+                mesh: meshes.add(Sphere::new(5.)),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::rgba(0., 0., 0., 0.5),
+                    reflectance: 1.,
+                    emissive:Color::rgba(1., 4., 1., 0.5),
+                    ..default()
+                }),
                 transform: Transform::from_translation(dock_position),
                 ..default()
             },
             Dock,
             RigidBody::Dynamic,
             GravityScale(0.),
-            Collider::cuboid(7.5, 2.5, 7.5),
+            Collider::ball(5.),
         ))
         .with_children(|p| {
             aura_id = p.spawn(
                 ParticleEffectBundle {
-                    effect: ParticleEffect::new(effects.add(dock_aura_effect())),
+                    effect: ParticleEffect::new(effects.add(dock_aura())),
                     ..default()
                 }
             ).id();
@@ -70,7 +115,6 @@ fn spawn (
     }
 
 }
-
 
 use crate::drone::DroneEvent;
 

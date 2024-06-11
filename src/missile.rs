@@ -34,6 +34,7 @@ pub struct MissileShot;
 pub struct MissileDestroy(Entity);
 
 use crate::LifeTime;
+use crate::effects::{blast, trail};
 // ---
 
 fn startup(
@@ -107,7 +108,7 @@ fn clean(
     time: Res<Time>,
 ) {
     for (e,  lifetime,) in delete_q.iter() {
-        if lifetime.0 + 5. < time.elapsed_seconds() {
+        if lifetime.0 + 10. < time.elapsed_seconds() {
             ev_writer.send(MissileDestroy(e));
         }
     }
@@ -149,97 +150,3 @@ fn collision(
     }
 }
 
-// ================================ Effects =========================================
-
-pub fn trail () ->EffectAsset {
-    let mut gradient = Gradient::new();
-    gradient.add_key(0.0, Vec4::new(2., 2., 2., 1.));
-    gradient.add_key(1., Vec4::new(10.0, 0.0, 0.0, 0.5));
-    
-    let color_modifier =  ColorOverLifetimeModifier {
-        gradient: gradient,
-    };
-    let size_modifier = SetSizeModifier {
-        size: Vec2::new(0.2, 0.2).into(),
-        ..default()
-    };
-
-    let writer = ExprWriter::new();
-
-    let age = writer.lit(0.).uniform(writer.lit(0.02)).expr();
-    let init_age = SetAttributeModifier::new(Attribute::AGE, age);
-    let lifetime = writer.lit(0.5).uniform(writer.lit(0.3)).expr();
-    let init_lifetime = SetAttributeModifier::new(Attribute::LIFETIME, lifetime);
-
-    let init_pos = SetPositionCone3dModifier {
-        height: writer.lit(2.).expr(),
-        base_radius: writer.lit(0.2).expr(),
-        top_radius: writer.lit(0.3).expr(),
-        dimension: ShapeDimension::Surface,
-    };
-
-    let init_vel = SetVelocitySphereModifier {
-        center: writer.lit(Vec3::ZERO).expr(),
-        speed: (writer.rand(ScalarType::Float) * writer.lit(1.) + writer.lit(2.)).expr(),
-    };
-
-    EffectAsset::new(
-        vec![32768],
-        Spawner::rate(5000.0.into()),
-        writer.finish(),
-    )
-    .with_name("trail")
-    .init(init_pos)
-    .init(init_vel)
-    .init(init_age)
-    .init(init_lifetime)
-    .render(color_modifier)
-    .render(size_modifier)
-}
-
-// ---
-
-pub fn blast () ->EffectAsset {
-    let mut gradient = Gradient::new();
-    gradient.add_key(0.0, Vec4::new(2., 2., 2., 1.));
-    gradient.add_key(0.1, Vec4::new(10.0, 10.0, 0.0, 0.1));
-    
-    let color_modifier =  ColorOverLifetimeModifier {
-        gradient: gradient,
-    };
-    let size_modifier = SetSizeModifier {
-        size: Vec2::new(0.1, 0.1).into(),
-        ..default()
-    };
-
-    let writer = ExprWriter::new();
-
-    let age = writer.lit(0.).uniform(writer.lit(0.02)).expr();
-    let init_age = SetAttributeModifier::new(Attribute::AGE, age);
-    let lifetime = writer.lit(0.2).expr();
-    let init_lifetime = SetAttributeModifier::new(Attribute::LIFETIME, lifetime);
-
-    let init_pos = SetPositionSphereModifier {
-        center: writer.lit(Vec3::ZERO).expr(),
-        radius: writer.lit(2.).expr(),
-        dimension: ShapeDimension::Volume,
-    };
-
-    let init_vel = SetVelocitySphereModifier {
-        center: writer.lit(Vec3::ZERO).expr(),
-        speed: (writer.rand(ScalarType::Float) * writer.lit(20.)).expr(),
-    };
-
-    EffectAsset::new(
-        vec![32768],
-        Spawner::once(5000.0.into(), false),
-        writer.finish(),
-    )
-    .with_name("blast")
-    .init(init_pos)
-    .init(init_vel)
-    .init(init_age)
-    .init(init_lifetime)
-    .render(color_modifier)
-    .render(size_modifier)
-}

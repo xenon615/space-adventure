@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_hanabi::prelude::*;
-use crate::particles::{engine_effect, steer_effect,aura_effect};
+use crate::effects::{engine, steer,ship_aura};
 use crate::camera::Focus;
 use crate::Target;
 use crate::GameState;
@@ -124,6 +124,7 @@ pub struct DroneControl((Entity, usize, f32));
 
 // - Events =======================================================================================================
 
+const LINEAR_DAMPING_DEFAULT: f32 = 0.01;  
 
 // ---
 
@@ -142,14 +143,13 @@ fn spawn(
         Drone,
         Focus,
         Supplies::new(1000.),
-        
         RigidBody::Dynamic,
         Collider::cuboid(1.25, 0.25, 2.25),
         GravityScale(0.),
         ExternalImpulse {impulse:Vec3::ZERO, torque_impulse: Vec3::ZERO},
         Multiplier {linear: 100., angular: 10.},
         Velocity::default(),
-        Damping{linear_damping: 0.5, angular_damping: 5.},
+        Damping{linear_damping: LINEAR_DAMPING_DEFAULT, angular_damping: 5.},
         LockedAxes::ROTATION_LOCKED_X | LockedAxes::ROTATION_LOCKED_Z,
     ))
     .insert((
@@ -159,7 +159,7 @@ fn spawn(
     .with_children(|parent| {
         parent.spawn((
             ParticleEffectBundle {
-                effect: ParticleEffect::new(effects.add(engine_effect())),
+                effect: ParticleEffect::new(effects.add(engine())),
                 transform: Transform::from_xyz(0., 0., 2.25)
                 .with_rotation(Quat::from_rotation_x(f32::to_radians(90.)))
                 .with_scale(Vec3::new(0.2, 0.2, 0.2)),
@@ -170,7 +170,7 @@ fn spawn(
         
         parent.spawn((
             ParticleEffectBundle {
-                effect: ParticleEffect::new(effects.add(steer_effect())),
+                effect: ParticleEffect::new(effects.add(steer())),
                 transform: Transform::from_xyz(1.2, 0., 0.)
                 .with_rotation(Quat::from_rotation_x(f32::to_radians(90.)))
                 .with_scale(Vec3::splat(0.5)),
@@ -182,7 +182,7 @@ fn spawn(
 
         parent.spawn((
             ParticleEffectBundle {
-                effect: ParticleEffect::new(effects.add(aura_effect())),
+                effect: ParticleEffect::new(effects.add(ship_aura())),
                 transform: Transform::from_xyz(0., 0., 0.),
                 ..Default::default()
             },
@@ -225,7 +225,13 @@ fn input (
     mut drone_q: Query<Entity , (With<Drone>, With<Manual>)>,
     mut ev_writer: EventWriter<DroneControl>
 ) {
-    let kk = [KeyCode::KeyW, KeyCode::KeyS, KeyCode::KeyA, KeyCode::KeyD,  KeyCode::KeyS, KeyCode::ArrowDown, KeyCode::ArrowUp, KeyCode::KeyB];
+    let kk = [
+        KeyCode::KeyW, KeyCode::KeyS, 
+        KeyCode::KeyA, KeyCode::KeyD,  
+        KeyCode::ArrowDown, KeyCode::ArrowUp, 
+        KeyCode::ArrowLeft, KeyCode::ArrowRight, 
+        KeyCode::KeyB
+    ];
     
     if keys.any_pressed(kk) {
         let Ok(e) = drone_q.get_single_mut() else {
@@ -257,8 +263,17 @@ fn input (
         }
 
         if keys.pressed(KeyCode::KeyB) {
-            ev_writer.send(DroneControl((e, 3, 1.)));
+            ev_writer.send(DroneControl((e, 3, 10.)));
         } 
+
+        if keys.pressed(KeyCode::ArrowLeft) {
+            ev_writer.send(DroneControl((e, 2, -5.)));
+        } 
+
+        if keys.pressed(KeyCode::ArrowRight) {
+            ev_writer.send(DroneControl((e, 2, 5.)));
+        } 
+
     }
     
 }
@@ -313,7 +328,7 @@ fn movement(
             if ev.0.1 == 3 {
                 dmp.linear_damping = ev.0.2;
             } else {
-                dmp.linear_damping = 0.5;
+                dmp.linear_damping = LINEAR_DAMPING_DEFAULT;
             } 
         }
     }
@@ -330,9 +345,10 @@ fn read_events (
     for e in reader.read() {
         match e {
             DroneEvent::Service {0: e} => {
-                ev_writer.send(DroneControl((*e, 3, 1.)));
                 commands.entity(*e).remove::<NeedService>();
                 commands.entity(*e).insert(UnderService);
+
+                ev_writer.send(DroneControl((*e, 3, 10.)));
             },
             DroneEvent::SupplyFluel {0: (e,v) } => {
                 if let Ok(mut sup ) = drone_q.get_mut(*e) {

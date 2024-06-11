@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_hanabi::prelude::*;
 
-pub fn engine_effect() ->EffectAsset {
+pub fn engine() ->EffectAsset {
     let mut gradient = Gradient::new();
     gradient.add_key(0.0, Vec4::new(2., 2., 2., 1.));
     gradient.add_key(1., Vec4::new(0.0, 0.0, 10.0, 0.0));
@@ -39,6 +39,7 @@ pub fn engine_effect() ->EffectAsset {
         writer.finish(),
     )
     .with_name("engine")
+    // .with_simulation_space(SimulationSpace::Local)
     .init(init_pos)
     .init(init_vel)
     .init(init_age)
@@ -47,9 +48,9 @@ pub fn engine_effect() ->EffectAsset {
     .render(size_modifier)
 }
 
-// ---
+// ==================================================================================================================
 
-pub fn steer_effect() ->EffectAsset {
+pub fn steer() ->EffectAsset {
     let mut color_gradient = Gradient::new();
     color_gradient.add_key(0.0, Vec4::new(4.0, 4.0, 4.0, 1.0));
     color_gradient.add_key(1.0, Vec4::new(0.0, 4.0, 0.0, 0.5));
@@ -84,6 +85,7 @@ pub fn steer_effect() ->EffectAsset {
         writer.finish()
     )
     .with_name("steer")
+    // .with_simulation_space(SimulationSpace::Local)
     .init(init_vel)
     .init(init_pos)
     .init(init_age)
@@ -95,9 +97,9 @@ pub fn steer_effect() ->EffectAsset {
     
 }
 
-// ---
+// ====================================================================================================================
 
-pub fn aura_effect() ->EffectAsset {
+pub fn ship_aura() ->EffectAsset {
     let writer = ExprWriter::new();
     let mut color_gradient = Gradient::new();
     color_gradient.add_key(0.0, Vec4::new(4.0, 4.0, 0.0, 1.));
@@ -143,16 +145,16 @@ pub fn aura_effect() ->EffectAsset {
     })
 } 
 
-// ---
+// ======================================================================================================
 
-pub fn dock_aura_effect() ->EffectAsset {
+pub fn dock_aura() ->EffectAsset {
     let writer = ExprWriter::new();
 
     let p_color = writer.add_property("p_color", Color::rgba(0.0, 14.0, 4.0, 1.).as_rgba_u32().into());
     let init_color = SetAttributeModifier::new(Attribute::COLOR, writer.prop(p_color).expr());
 
     let size_modifier = SetSizeModifier {
-        size: Vec2::new(0.06, 0.06).into(),
+        size: Vec2::new(0.1, 0.1).into(),
         ..default()
     };
 
@@ -191,3 +193,97 @@ pub fn dock_aura_effect() ->EffectAsset {
 } 
 
 
+// ====================================================================================================================
+
+pub fn trail () ->EffectAsset {
+    let mut gradient = Gradient::new();
+    gradient.add_key(0.0, Vec4::new(2., 2., 2., 1.));
+    gradient.add_key(1., Vec4::new(10.0, 0.0, 0.0, 0.5));
+    
+    let color_modifier =  ColorOverLifetimeModifier {
+        gradient: gradient,
+    };
+    let size_modifier = SetSizeModifier {
+        size: Vec2::new(0.2, 0.2).into(),
+        ..default()
+    };
+
+    let writer = ExprWriter::new();
+
+    let age = writer.lit(0.).uniform(writer.lit(0.02)).expr();
+    let init_age = SetAttributeModifier::new(Attribute::AGE, age);
+    let lifetime = writer.lit(0.5).uniform(writer.lit(0.3)).expr();
+    let init_lifetime = SetAttributeModifier::new(Attribute::LIFETIME, lifetime);
+
+    let init_pos = SetPositionCone3dModifier {
+        height: writer.lit(2.).expr(),
+        base_radius: writer.lit(0.2).expr(),
+        top_radius: writer.lit(0.3).expr(),
+        dimension: ShapeDimension::Surface,
+    };
+
+    let init_vel = SetVelocitySphereModifier {
+        center: writer.lit(Vec3::ZERO).expr(),
+        speed: (writer.rand(ScalarType::Float) * writer.lit(1.) + writer.lit(2.)).expr(),
+    };
+
+    EffectAsset::new(
+        vec![32768],
+        Spawner::rate(5000.0.into()),
+        writer.finish(),
+    )
+    .with_name("trail")
+    .init(init_pos)
+    .init(init_vel)
+    .init(init_age)
+    .init(init_lifetime)
+    .render(color_modifier)
+    .render(size_modifier)
+}
+
+// =====================================================================================================================
+
+pub fn blast () ->EffectAsset {
+    let mut gradient = Gradient::new();
+    gradient.add_key(0.0, Vec4::new(2., 2., 2., 1.));
+    gradient.add_key(0.1, Vec4::new(10.0, 10.0, 0.0, 0.1));
+    
+    let color_modifier =  ColorOverLifetimeModifier {
+        gradient: gradient,
+    };
+    let size_modifier = SetSizeModifier {
+        size: Vec2::new(0.1, 0.1).into(),
+        ..default()
+    };
+
+    let writer = ExprWriter::new();
+
+    let age = writer.lit(0.).uniform(writer.lit(0.02)).expr();
+    let init_age = SetAttributeModifier::new(Attribute::AGE, age);
+    let lifetime = writer.lit(0.2).expr();
+    let init_lifetime = SetAttributeModifier::new(Attribute::LIFETIME, lifetime);
+
+    let init_pos = SetPositionSphereModifier {
+        center: writer.lit(Vec3::ZERO).expr(),
+        radius: writer.lit(2.).expr(),
+        dimension: ShapeDimension::Volume,
+    };
+
+    let init_vel = SetVelocitySphereModifier {
+        center: writer.lit(Vec3::ZERO).expr(),
+        speed: (writer.rand(ScalarType::Float) * writer.lit(20.)).expr(),
+    };
+
+    EffectAsset::new(
+        vec![32768],
+        Spawner::once(5000.0.into(), false),
+        writer.finish(),
+    )
+    .with_name("blast")
+    .init(init_pos)
+    .init(init_vel)
+    .init(init_age)
+    .init(init_lifetime)
+    .render(color_modifier)
+    .render(size_modifier)
+}

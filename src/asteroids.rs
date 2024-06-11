@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy::time::common_conditions::on_timer;
 use bevy_rapier3d::prelude::*;
 
+use crate::missile::Missile;
 use crate::Health;
 pub struct AsteroidsPlugin;
 impl Plugin for AsteroidsPlugin{
@@ -76,11 +77,15 @@ fn spawn(
 fn collision(
     mut collision_events: EventReader<CollisionEvent>,
     mut e_q: Query<(Entity, &mut Health), With<Asteroid>>,
+    m_q: Query<Entity, With<Missile>>
 ) {
     for c_ev  in  collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = c_ev {
             for (_, mut h) in e_q.iter_mut().filter(|(e, _)| {e == e1 || e == e2}) {
-                h.0 -= 10.;    
+                if m_q.contains(*e1) || m_q.contains(*e2) {
+                    h.0 -= 10.;
+                } 
+                // h.0 -= 10.;
                 break;    
             }
         }

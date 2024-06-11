@@ -195,8 +195,10 @@ fn update_indicators(
     mut a_q: Query<(&mut Transform, &UIIndicator), (Without<Drone>, Without<Target>, Without<Focus>)>,
     target_q: Query<&Transform, (With<Target>, Without<Drone>, Without<Focus>)>,
 ) {
-    let Ok(target_transform) =  target_q.get_single() else {
-        return;
+    let target_translation = if let Ok(target_transform) =  target_q.get_single()  {
+        target_transform.translation
+    } else {
+        Vec3::ZERO
     };
 
     let Ok((v, drone_transform, supplies)) = drone_q.get_single() else {
@@ -204,7 +206,7 @@ fn update_indicators(
     };
 
 
-    let to_target = target_transform.translation - drone_transform.translation;
+    let to_target = target_translation - drone_transform.translation;
 
     for  (mut text, itype) in i_q.iter_mut() {
         match itype {
@@ -216,7 +218,7 @@ fn update_indicators(
             },
 
             UIIndicator::Elevation => {
-                text.sections[0].value = format!("Dist Y: {:.2}", drone_transform.translation.y -  target_transform.translation.y)
+                text.sections[0].value = format!("Dist Y: {:.2}", drone_transform.translation.y -  target_translation.y)
             },
 
             UIIndicator::Fluel=> {
@@ -260,14 +262,20 @@ fn read_messages(
 // ---
 
 fn move_crosshair(
-    focus_q: Query<&Transform, With<Focus>>,   
+    focus_q: Query<&Transform, (With<Focus>, Without<Target>)>,   
+    target_q: Query<&Transform, (With<Target>, Without<Focus>)>,
     mut crosshair_q: Query<&mut Style, With<Crosshair>>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Cam>>,
 ) {
     for (camera, camera_transform) in camera_query.iter() {
         for focus_trans  in focus_q.iter() {
             for mut style in crosshair_q.iter_mut() {
-                let far = focus_trans.translation + focus_trans.forward() * 100.;
+                let mut dist = 100.;
+                if let Ok(target) = target_q.get_single() {
+                    dist = target.translation.distance(focus_trans.translation);
+                }
+    
+                let far = focus_trans.translation + focus_trans.forward() * dist;
                 match camera.world_to_viewport(camera_transform, far)
                 {
                     Some(coords) => {
