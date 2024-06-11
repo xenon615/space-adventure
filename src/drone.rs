@@ -1,8 +1,5 @@
 use std::f32::consts::PI;
-
 use bevy::prelude::*;
-
-
 use bevy_rapier3d::prelude::*;
 use bevy_hanabi::prelude::*;
 use crate::particles::{engine_effect, steer_effect,aura_effect};
@@ -162,7 +159,7 @@ fn spawn(
     .with_children(|parent| {
         parent.spawn((
             ParticleEffectBundle {
-                effect: ParticleEffect::new(effects.add(engine_effect(&asset))),
+                effect: ParticleEffect::new(effects.add(engine_effect())),
                 transform: Transform::from_xyz(0., 0., 2.25)
                 .with_rotation(Quat::from_rotation_x(f32::to_radians(90.)))
                 .with_scale(Vec3::new(0.2, 0.2, 0.2)),
@@ -173,7 +170,7 @@ fn spawn(
         
         parent.spawn((
             ParticleEffectBundle {
-                effect: ParticleEffect::new(effects.add(steer_effect(&asset))),
+                effect: ParticleEffect::new(effects.add(steer_effect())),
                 transform: Transform::from_xyz(1.2, 0., 0.)
                 .with_rotation(Quat::from_rotation_x(f32::to_radians(90.)))
                 .with_scale(Vec3::splat(0.5)),
@@ -185,7 +182,7 @@ fn spawn(
 
         parent.spawn((
             ParticleEffectBundle {
-                effect: ParticleEffect::new(effects.add(aura_effect(&asset))),
+                effect: ParticleEffect::new(effects.add(aura_effect())),
                 transform: Transform::from_xyz(0., 0., 0.),
                 ..Default::default()
             },
@@ -304,7 +301,7 @@ fn movement(
                 ei.torque_impulse = drone_transform.up() * -ev.0.2  * time.delta_seconds() * mult.angular;
                 fluel_loss = 0.05;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.aux) {
-                    loc_trans.translation.x = - ev.0.2.signum() * 1.3;
+                    loc_trans.translation.x = - ev.0.2.signum() * 1.5;
                     s.reset();
                 }
             }
@@ -344,7 +341,6 @@ fn read_events (
                     }
                 }
             }
-            _ => ()
         }
     }
 }

@@ -1,6 +1,5 @@
-use std::{process::CommandArgs, time::Duration};
-
-use bevy::{ecs::query, prelude::*, time::common_conditions::on_timer};
+use std::time::Duration;
+use bevy::{prelude::*, time::common_conditions::on_timer};
 use bevy_rapier3d::prelude::*;
 use bevy_hanabi::prelude::*;
 use crate::drone;

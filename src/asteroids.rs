@@ -1,6 +1,4 @@
 use std::time::Duration;
-
-use bevy::math::vec3;
 use bevy::prelude::*;
 use bevy::time::common_conditions::on_timer;
 use bevy_rapier3d::prelude::*;
@@ -66,7 +64,7 @@ fn spawn(
                 GravityScale(0.),
                 Collider::ball(10.),
                 ActiveEvents::COLLISION_EVENTS,
-                ExternalImpulse{impulse: (target - initial_pos) * 500., torque_impulse: Vec3::Y * 2.}
+                ExternalImpulse{impulse: (target - initial_pos) * 50., torque_impulse: Vec3::Y * 2.}
             ));    
         }
     }

@@ -5,7 +5,6 @@ use bevy::math::vec3;
 use bevy::prelude::*;
 use bevy::time::common_conditions::on_timer;
 use bevy_hanabi::EffectProperties;
-use bevy_hanabi::EffectSpawner;
 use bevy_hanabi::{ParticleEffect, ParticleEffectBundle, EffectAsset};
 use bevy_rapier3d::prelude::*;
 use crate::particles::*;
@@ -58,7 +57,7 @@ fn spawn (
         .with_children(|p| {
             aura_id = p.spawn(
                 ParticleEffectBundle {
-                    effect: ParticleEffect::new(effects.add(dock_aura_effect(&asset))),
+                    effect: ParticleEffect::new(effects.add(dock_aura_effect())),
                     ..default()
                 }
             ).id();
@@ -69,9 +68,6 @@ fn spawn (
             commands.entity(dock_id).insert(Target);
         }
     }
-
-
-
 
 }
 
