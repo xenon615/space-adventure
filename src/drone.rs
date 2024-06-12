@@ -135,7 +135,7 @@ fn spawn(
 ) {
     commands.spawn((
         SceneBundle {
-            scene: asset.load("models/torus.glb#Scene0"),
+            scene: asset.load("models/ship2.glb#Scene0"),
             transform: Transform::from_xyz(50., 15., 50.).looking_at(Vec3::new(100., 15., 0.), Vec3::Y),
             ..default()
         },
