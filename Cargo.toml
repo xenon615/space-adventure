@@ -63,5 +63,3 @@ features = [
     # optional ---
     "dynamic_linking",  #FOR DEBUG!!!
 ]
-
-#wasm-bindgen --no-typescript --target web  --out-dir d:\tmp\out  --out-name "fontain"  ./target/wasm32-unknown-unknown/release/fontain.wasm

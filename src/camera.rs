@@ -122,8 +122,8 @@ fn switch_state(
         for b in keys.get_just_pressed() {
             match b {
                 KeyCode::Digit1 => {
-                    bias.0 = Vec3::new(0., 10., -25.);
-                    bias.1 = Vec3::new(0., 10., 0.);
+                    bias.0 = Vec3::new(0., 10., -35.);
+                    bias.1 = Vec3::new(0., 10., -5.);
                     next.set(CamViewState::Third);
                 },
                 KeyCode::Digit2 => {

@@ -75,7 +75,7 @@ fn shot(
             PbrBundle {
                 material: materials.add(Color::SILVER),
                 mesh: meshes.add(Sphere::new(BALL_RADIUS)),
-                transform: Transform::from_translation(drone_trans.translation + drone_trans.forward() * 5.).looking_to(drone_trans.forward().into(), Vec3::Y),
+                transform: Transform::from_translation(drone_trans.translation + drone_trans.forward() * 15.).looking_to(drone_trans.forward().into(), Vec3::Y),
                 ..default()
             },
             Missile,

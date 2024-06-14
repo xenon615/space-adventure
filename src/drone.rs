@@ -103,7 +103,6 @@ impl Supplies {
 
     pub fn fluel_limit(&self) -> bool {
         self.fluel_percent() < 0.2
-
     }
 }
 
@@ -160,7 +159,7 @@ fn spawn(
         parent.spawn((
             ParticleEffectBundle {
                 effect: ParticleEffect::new(effects.add(engine())),
-                transform: Transform::from_xyz(0., 0., 2.25)
+                transform: Transform::from_xyz(0., 0., 19.25)
                 .with_rotation(Quat::from_rotation_x(f32::to_radians(90.)))
                 .with_scale(Vec3::new(0.2, 0.2, 0.2)),
                 ..Default::default()
@@ -171,7 +170,7 @@ fn spawn(
         parent.spawn((
             ParticleEffectBundle {
                 effect: ParticleEffect::new(effects.add(steer())),
-                transform: Transform::from_xyz(1.2, 0., 0.)
+                transform: Transform::from_xyz(1.2, 0., 1.)
                 .with_rotation(Quat::from_rotation_x(f32::to_radians(90.)))
                 .with_scale(Vec3::splat(0.5)),
                 
@@ -296,7 +295,8 @@ fn movement(
                 ei.impulse = drone_transform.forward() * mult.linear * ev.0.2 * time.delta_seconds();
                 fluel_loss = 0.1;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.main) {
-                    loc_trans.translation.z = 2.25 * ev.0.2.signum();
+                    loc_trans.translation.z = 6.1 * ev.0.2.signum();
+                    loc_trans.translation.y = 0.;
                     loc_trans.rotation = Quat::from_euler(EulerRot::XYZ, ev.0.2 * PI / 2., 0., 0.);
                     s.reset();
                 }
@@ -306,7 +306,8 @@ fn movement(
                 ei.impulse = drone_transform.up() * mult.linear * ev.0.2   * time.delta_seconds();
                 fluel_loss = 0.1;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.main) {
-                    loc_trans.translation.z = 0.;
+                    loc_trans.translation.z = 1.;
+                    loc_trans.translation.y = -1.5 * ev.0.2.signum();
                     loc_trans.rotation = if ev.0.2 > 0. {Quat::from_euler(EulerRot::XYZ, PI, 0., 0.)} else {Quat::IDENTITY};
                     s.reset();
                 }
@@ -316,7 +317,7 @@ fn movement(
                 ei.torque_impulse = drone_transform.up() * -ev.0.2  * time.delta_seconds() * mult.angular;
                 fluel_loss = 0.05;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.aux) {
-                    loc_trans.translation.x = - ev.0.2.signum() * 1.5;
+                    loc_trans.translation.x = - ev.0.2.signum() * 5.5;
                     s.reset();
                 }
             }

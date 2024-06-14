@@ -119,7 +119,7 @@ pub fn ship_aura() ->EffectAsset {
     let init_pos = SetPositionSphereModifier{
         center: writer.lit(Vec3::ZERO).expr(),
         dimension: ShapeDimension::Surface,
-        radius: writer.lit(2.).expr()
+        radius: writer.lit(5.).expr()
     };
 
     let init_vel = SetVelocitySphereModifier {

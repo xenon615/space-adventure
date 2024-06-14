@@ -16,7 +16,7 @@ fn startup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut al: ResMut<AmbientLight>
 ) {
-    al.brightness = 1000.;
+    al.brightness = 100.;
     commands.spawn((
         PbrBundle {
             material: materials.add(StandardMaterial {
@@ -36,7 +36,7 @@ fn startup(
     commands.spawn(DirectionalLightBundle{
         directional_light: DirectionalLight {
             color: Color::WHITE,
-            illuminance: 1000.,
+            illuminance: 50000.,
             ..default()
         },
         transform: Transform::from_xyz(100., 100., 100.),
