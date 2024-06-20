@@ -52,8 +52,8 @@ pub fn engine() ->EffectAsset {
 
 pub fn steer() ->EffectAsset {
     let mut color_gradient = Gradient::new();
-    color_gradient.add_key(0.0, Vec4::new(4.0, 4.0, 4.0, 1.0));
-    color_gradient.add_key(1.0, Vec4::new(0.0, 4.0, 0.0, 0.5));
+    color_gradient.add_key(0.0, Vec4::new(2., 2., 2., 1.));
+    color_gradient.add_key(1., Vec4::new(0.0, 0.0, 10.0, 0.0));
 
     let size_modifier = SetSizeModifier {
         size: Vec2::new(0.2, 0.2).into(),
