@@ -137,7 +137,7 @@ fn spawn(
     commands.spawn((
         SceneBundle {
             scene: asset.load("models/ship2.glb#Scene0"),
-            transform: Transform::from_xyz(0., 100., 0.) ,
+            transform: Transform::from_xyz(0., 10., 0.) ,
             ..default()
         },
         Name::new("Drone"),
