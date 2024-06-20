@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 fastrand = "2.1.0"
 bevy-inspector-egui = "0.24.0"
-bevy_gltf_components = "0.5"
-bevy_registry_export = "0.3"
+# bevy_gltf_components = "0.5"
+# bevy_registry_export = "0.3"
 bevy_rapier3d = { version = "0.26.0",  features = [ "simd-stable", "debug-render-3d" ]  }
 bevy_panorbit_camera= "0.18.2"
 bevy_hanabi = {version = "0.11.0" , default-features = false , features = ["3d"] }
@@ -61,5 +61,8 @@ features = [
     # "webgl2",
     
     # optional ---
-    "dynamic_linking",  #FOR DEBUG!!!
+    # "dynamic_linking",  #FOR DEBUG!!!
 ]
+
+[profile.release]
+codegen-units = 1

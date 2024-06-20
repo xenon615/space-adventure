@@ -295,7 +295,6 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65b9eadaacf8fe971331bc3f250f35c18bc9dace3f96b483062f38ac07e3a1b4"
 dependencies = [
- "bevy_dylib",
  "bevy_internal",
 ]
 
@@ -478,15 +477,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_dylib"
-version = "0.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "922826e3b8f37c19836b49e18ceca662260cce87ab8faa4db6df8433903660cc"
-dependencies = [
- "bevy_internal",
-]
-
-[[package]]
 name = "bevy_ecs"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -610,17 +600,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
-]
-
-[[package]]
-name = "bevy_gltf_components"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7ae31d0e0a111b003f42f44f504ed24153f1341c1989a4e418bdb52da7b6b88"
-dependencies = [
- "bevy",
- "ron",
- "serde",
 ]
 
 [[package]]
@@ -840,19 +819,6 @@ dependencies = [
  "quote",
  "syn 2.0.65",
  "uuid",
-]
-
-[[package]]
-name = "bevy_registry_export"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c971f8bd4115568455a0f27b4a808d24f600e30d2de7fbc10461d21170058df"
-dependencies = [
- "bevy",
- "bevy_app",
- "bevy_ecs",
- "bevy_reflect",
- "serde_json",
 ]
 
 [[package]]
@@ -3413,11 +3379,9 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
- "bevy_gltf_components",
  "bevy_hanabi",
  "bevy_panorbit_camera",
  "bevy_rapier3d",
- "bevy_registry_export",
  "fastrand",
 ]
 

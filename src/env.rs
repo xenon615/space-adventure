@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
+use crate::Target;
+
 pub struct EnvPlugin;
 impl Plugin for EnvPlugin {
     fn build(&self, app: &mut App) {
@@ -30,18 +32,33 @@ fn startup(
         Name::new("Floor"),
         Collider::cuboid(25., 0.5, 25.),
         RigidBody::Fixed,
+        Target
     ));
     
+    // commands.spawn((
+    //     PbrBundle {
+    //         material: materials.add(StandardMaterial {
+    //             base_color: Color::rgb(0., 0.,1.),
+    //             ..default()
+    //         }),
+    //         mesh: meshes.add(Cuboid::from_size(Vec3::new(50.,50.,50.))),
+    //         transform: Transform::from_xyz(500., 500., 500.),
+    //         ..default()
+    //     },
+    //     Name::new("Dummy"),
+    //     Collider::cuboid(25., 25., 25.),
+    //     RigidBody::Fixed,
+    // ));
 
     commands.spawn(DirectionalLightBundle{
         directional_light: DirectionalLight {
             color: Color::WHITE,
-            illuminance: 50000.,
+            illuminance: 10000.,
             ..default()
         },
         transform: Transform::from_xyz(100., 100., 100.),
         ..default()
     });
-    
+   
     
 } 

@@ -38,6 +38,7 @@ fn spawn(
 ) {
     let mut mm:Vec<(Handle<Mesh>, Handle<StandardMaterial>)> = Vec::new();
     let range = 400..1000;
+    // let range = -400..400;
     let dev_range = -45..45;
      
     for i in 0..3 {
@@ -85,7 +86,6 @@ fn collision(
                 if m_q.contains(*e1) || m_q.contains(*e2) {
                     h.0 -= 10.;
                 } 
-                // h.0 -= 10.;
                 break;    
             }
         }
@@ -124,7 +124,7 @@ fn check(
                     RigidBody::Dynamic,
                     Health(10.),
                     LifeTime(time.elapsed_seconds()),
-                    ExternalImpulse{impulse: lattice[i] * 5., torque_impulse: lattice[i]}
+                    ExternalImpulse{impulse: lattice[i] * 10., torque_impulse: lattice[i]}
                 ));
             }
         }

@@ -21,7 +21,7 @@ impl Plugin for DronePlugin {
             movement,
             read_events,
             check_state,
-        ).run_if(not(in_state(GameState::Setup))));
+        ).run_if(in_state(GameState::Game)));
         app.add_event::<DroneEvent>();
         app.add_event::<DroneControl>();
     }
@@ -57,8 +57,10 @@ pub struct Manual;
 #[derive(Component)]
 pub struct UnderService;
 
-#[derive(Component)]
-pub struct Braking;
+use crate::NotReady;
+
+// #[derive(Component)]
+// pub struct Braking;
 
 
 // - Markers =====================================================================================================
@@ -135,7 +137,7 @@ fn spawn(
     commands.spawn((
         SceneBundle {
             scene: asset.load("models/ship2.glb#Scene0"),
-            transform: Transform::from_xyz(50., 15., 50.).looking_at(Vec3::new(100., 15., 0.), Vec3::Y),
+            transform: Transform::from_xyz(0., 100., 0.) ,
             ..default()
         },
         Name::new("Drone"),
@@ -150,10 +152,8 @@ fn spawn(
         Velocity::default(),
         Damping{linear_damping: LINEAR_DAMPING_DEFAULT, angular_damping: 5.},
         LockedAxes::ROTATION_LOCKED_X | LockedAxes::ROTATION_LOCKED_Z,
-    ))
-    .insert((
         Manual,
-        NeedService
+        NotReady
     ))
     .with_children(|parent| {
         parent.spawn((
@@ -196,24 +196,23 @@ fn spawn(
 
 fn setup (
     mut commands: Commands,
-    d_q: Query<(Entity, &Children), (Without<Effects>, With<Drone>)>,
+    d_q: Query<(Entity, &Children), (With<NotReady>, With<Drone>)>,
     e_q: Query<(Entity, &PSEffect)>,
-    mut next: ResMut<NextState<GameState>>
 ) {
     
     for (e, children) in d_q.iter() {
-        let mut temp = Effects{main: Entity::PLACEHOLDER, aux: Entity::PLACEHOLDER};
+        let mut effects = Effects{main: Entity::PLACEHOLDER, aux: Entity::PLACEHOLDER};
         for che in children.iter() {
             if let Ok((ce, eff)) =  e_q.get(*che) {
                 if *eff == PSEffect::Main {
-                    temp.main = ce
+                    effects.main = ce
                 } else if *eff == PSEffect::Aux {
-                    temp.aux = ce
+                    effects.aux = ce
                 }
             }
         }
-        commands.entity(e).insert(temp);
-        next.set(GameState::Game);
+        commands.entity(e).insert(effects);
+        commands.entity(e).remove::<NotReady>();
     }
 }
 
@@ -221,7 +220,7 @@ fn setup (
 
 fn input (
     keys: Res<ButtonInput<KeyCode>>,
-    mut drone_q: Query<Entity , (With<Drone>, With<Manual>)>,
+    drone_q: Query<Entity , (With<Drone>, With<Manual>)>,
     mut ev_writer: EventWriter<DroneControl>
 ) {
     let kk = [
@@ -233,7 +232,7 @@ fn input (
     ];
     
     if keys.any_pressed(kk) {
-        let Ok(e) = drone_q.get_single_mut() else {
+        let Ok(e) = drone_q.get_single() else {
             return;
         };
 
@@ -266,11 +265,11 @@ fn input (
         } 
 
         if keys.pressed(KeyCode::ArrowLeft) {
-            ev_writer.send(DroneControl((e, 2, -5.)));
+            ev_writer.send(DroneControl((e, 2, -2.)));
         } 
 
         if keys.pressed(KeyCode::ArrowRight) {
-            ev_writer.send(DroneControl((e, 2, 5.)));
+            ev_writer.send(DroneControl((e, 2, 2.)));
         } 
 
     }
@@ -290,10 +289,10 @@ fn movement(
             if supplies.fluel_get() <= 0. {
                 return;
             }
-            let mut fluel_loss: f32 = 0.;
+            let mut fluel_loss_mult: f32 = 0.;
             if ev.0.1 == 0 {
                 ei.impulse = drone_transform.forward() * mult.linear * ev.0.2 * time.delta_seconds();
-                fluel_loss = 0.1;
+                fluel_loss_mult = 0.1;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.main) {
                     loc_trans.translation.z = 6.1 * ev.0.2.signum();
                     loc_trans.translation.y = 0.;
@@ -304,7 +303,7 @@ fn movement(
 
             if ev.0.1 == 1 {
                 ei.impulse = drone_transform.up() * mult.linear * ev.0.2   * time.delta_seconds();
-                fluel_loss = 0.1;
+                fluel_loss_mult = 0.1;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.main) {
                     loc_trans.translation.z = 1.;
                     loc_trans.translation.y = -1.5 * ev.0.2.signum();
@@ -315,15 +314,11 @@ fn movement(
 
             if ev.0.1 == 2 {
                 ei.torque_impulse = drone_transform.up() * -ev.0.2  * time.delta_seconds() * mult.angular;
-                fluel_loss = 0.05;
+                fluel_loss_mult = 0.05;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.aux) {
                     loc_trans.translation.x = - ev.0.2.signum() * 5.5;
                     s.reset();
                 }
-            }
-
-            if fluel_loss > 0. {
-                supplies.fluel_loss(fluel_loss);
             }
 
             if ev.0.1 == 3 {
@@ -331,6 +326,11 @@ fn movement(
             } else {
                 dmp.linear_damping = LINEAR_DAMPING_DEFAULT;
             } 
+
+            if fluel_loss_mult > 0. {
+                supplies.fluel_loss(ev.0.2.abs() * fluel_loss_mult);
+            }
+
         }
     }
 }

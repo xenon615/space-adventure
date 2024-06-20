@@ -1,8 +1,8 @@
 
-use bevy::{prelude::*, window::WindowResolution};
-use bevy_gltf_components::ComponentsFromGltfPlugin;
+use bevy::{prelude::*, window::{WindowMode, WindowResolution}};
+// use bevy_gltf_components::ComponentsFromGltfPlugin;
 // use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_registry_export::*;
+// use bevy_registry_export::*;
 use bevy_rapier3d::prelude::*;
 use bevy_hanabi::prelude::*;
 mod camera;
@@ -13,6 +13,7 @@ mod effects;
 mod asteroids;
 mod docks;
 mod missile;
+mod laser;
 mod target_select;
 // ===============
 
@@ -24,8 +25,8 @@ pub struct Health(pub f32);
 #[derive(Component)]
 pub struct LifeTime(pub f32);
 
-// #[derive(Component)]
-// pub struct Home;
+#[derive(Component)]
+pub struct NotReady;
 
 // ================
 
@@ -36,7 +37,8 @@ fn main() {
         DefaultPlugins.set(
             WindowPlugin {
                 primary_window : Some(Window {
-                    resolution : WindowResolution::new(1400., 900.),
+                    // resolution : WindowResolution::new(1400., 900.),
+                    mode: WindowMode::BorderlessFullscreen,
                     position: WindowPosition::Centered(MonitorSelection::Primary),
                     ..default()
                 }),
@@ -47,12 +49,13 @@ fn main() {
         env::EnvPlugin,
         drone::DronePlugin,
         missile::MissilePlugin,
+        laser::LaserPlugin,
         asteroids::AsteroidsPlugin,
         docks::DocksPlugin,
         target_select::TargetSelectPlugin,
         // WorldInspectorPlugin::new(),
-        ComponentsFromGltfPlugin{legacy_mode: false},
-        ExportRegistryPlugin::default(),
+        // ComponentsFromGltfPlugin{legacy_mode: false},
+        // ExportRegistryPlugin::default(),
         RapierPhysicsPlugin::<NoUserData>::default(),
         // RapierDebugRenderPlugin::default(),
         ui::UIPlugin,
@@ -60,6 +63,7 @@ fn main() {
     ))
     .init_state::<GameState>()
     .add_event::<GameMessage>()
+    .add_systems(Update, check_ready.run_if(in_state(GameState::Setup)))
     .run();
 }
 
@@ -72,5 +76,15 @@ pub enum GameState{
 
 #[derive(Event, PartialEq)]
 pub struct  GameMessage(pub String);
-    
+
+// ---
+
+fn check_ready(
+    mut next: ResMut<NextState<GameState>>,
+    not_ready_q: Query<Entity, With<NotReady>>
+) {
+    if not_ready_q.is_empty() {
+        next.set(GameState::Game);
+    }
+} 
 

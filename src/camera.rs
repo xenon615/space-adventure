@@ -4,19 +4,21 @@ use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::prelude::*;
 use bevy::core_pipeline::Skybox;
-use bevy_rapier3d::prelude::*;
-use bevy::transform::TransformSystem;
+// use bevy_rapier3d::prelude::*;
+// use bevy::transform::TransformSystem;
 
 pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup); 
-        app.add_systems(PostUpdate, 
-            follow
-            .run_if(not(in_state(CamViewState::Free)))
-            .after(PhysicsSet::SyncBackend)
-            .before(TransformSystem::TransformPropagate)
-        );
+        // app.add_systems(PostUpdate, 
+        //     follow
+        //     .run_if(not(in_state(CamViewState::Free)))
+        //     .after(PhysicsSet::SyncBackend)
+        //     .before(TransformSystem::TransformPropagate)
+        // );
+        app.add_systems(Update, follow.run_if(not(in_state(CamViewState::Free))));
+
         app.add_systems(Update, switch_state);
 
         app.add_systems(OnEnter(CamViewState::Free), enter_free);
@@ -66,22 +68,13 @@ fn setup (
             },
             ..default()
         },
-        // FogSettings {
-        //     color: Color::rgba(0.25, 0.25, 0.25, 1.0),
-        //     falloff: FogFalloff::Linear {
-        //         start: 50.0,
-        //         end: 120.0,
-        //     },
-        //     ..default()
-        // },
-
         Skybox{
             image: assets.load("skyboxes/cubemap.ktx2"),
             brightness: 1500.
         }, 
         Cam,
         Name::new("Camera"),
-        CamBias(Vec3::new(0., 10., -25.), Vec3::new(0., 10., 0.)),
+        CamBias(Vec3::new(0., 10., -45.), Vec3::new(0., 10., 0.)),
         BloomSettings::NATURAL,
         PanOrbitCamera {
             enabled: false,
@@ -122,35 +115,33 @@ fn switch_state(
         for b in keys.get_just_pressed() {
             match b {
                 KeyCode::Digit1 => {
-                    bias.0 = Vec3::new(0., 10., -35.);
+                    bias.0 = Vec3::new(0., 10., -45.);
                     bias.1 = Vec3::new(0., 10., -5.);
                     next.set(CamViewState::Third);
                 },
                 KeyCode::Digit2 => {
-                    bias.0 = Vec3::new(0., 0., -25.);
+                    bias.0 = Vec3::new(0., 0., -30.);
                     bias.1 =  Vec3::splat(0.);
                     next.set(CamViewState::Back);
                 },
                 KeyCode::Digit3 => {
-                    bias.0 = Vec3::new(0., 10., 0.);
+                    bias.0 = Vec3::new(0., 30., 0.);
                     bias.1 = Vec3::splat(0.);
                     next.set(CamViewState::Top);
                 },
 
                 KeyCode::Digit4 => {
-                    bias.0 = Vec3::new(-10., 0., 0.);
+                    bias.0 = Vec3::new(-30., 0., 0.);
                     bias.1 = Vec3::splat(0.);
                     next.set(CamViewState::Left);
                 },
                 KeyCode::Digit5 => {
-                    bias.0 = Vec3::new(10., 0., 0.);
+                    bias.0 = Vec3::new(30., 0., 0.);
                     bias.1 = Vec3::splat(0.);
                     next.set(CamViewState::Right);
                 },
 
                 KeyCode::Digit6 => {
-                    bias.0 = Vec3::new(10., 0., 0.);
-                    bias.1 = Vec3::splat(0.);
                     next.set(CamViewState::Free);
                 },
 
@@ -167,12 +158,11 @@ fn enter_free(
     mut pan_orbit_query: Query<&mut PanOrbitCamera>
 ) {
     if let Ok(mut poc)  = pan_orbit_query.get_single_mut() {
-        poc.enabled = true;
-        poc.force_update = true;
         if let Ok(ft) = focus_q.get_single() {
             poc.target_focus = ft.translation;
-            
         }
+        poc.enabled = true;
+        poc.force_update = true;
     }
 }
 
@@ -183,5 +173,6 @@ fn exit_free(
 ) {
     if let Ok(mut poc)  = pan_orbit_query.get_single_mut() {
         poc.enabled = false;
+        poc.force_update = true;
     }
 }
