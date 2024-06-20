@@ -37,9 +37,9 @@ fn spawn(
     assets: ResMut<AssetServer>,
 ) {
     let mut mm:Vec<(Handle<Mesh>, Handle<StandardMaterial>)> = Vec::new();
-    let range = 400..1000;
-    // let range = -400..400;
-    let dev_range = -45..45;
+    let range_xz = -800 .. 800;
+    let range_y = 100 .. 200;
+    let deviation_range = -100..100;
      
     for i in 0..3 {
         let mesh = assets.load(format!("models/asteroids.glb#Mesh{}/Primitive0", i));
@@ -50,8 +50,8 @@ fn spawn(
 
 
         for _j in 0..20 {
-            let initial_pos = Vec3::new(fastrand::i32(range.clone()) as _ , fastrand::i32(range.clone()) as _, fastrand::i32(range.clone()) as _);
-            let target = Vec3::splat(0.) + Vec3::new(fastrand::i32(dev_range.clone()) as _ , fastrand::i32(dev_range.clone()) as _, fastrand::i32(dev_range.clone()) as _);
+            let initial_pos = Vec3::new(fastrand::i32(range_xz.clone()) as _ , fastrand::i32(range_y.clone()) as _, fastrand::i32(range_xz.clone()) as _);
+            let target = Vec3::splat(0.) + Vec3::new(fastrand::i32(deviation_range.clone()) as _ , fastrand::i32(deviation_range.clone()) as _, fastrand::i32(deviation_range.clone()) as _);
             commands.spawn((
                 PbrBundle {
                     mesh : mesh.clone(),
@@ -139,7 +139,7 @@ fn cleanup(
     time: Res<Time>,
 ) {
     for (e,  lifetime,) in delete_q.iter() {
-        if lifetime.0 + 15. < time.elapsed_seconds() {
+        if lifetime.0 + 5. < time.elapsed_seconds() {
             commands.entity(e).despawn_recursive();
         }
     }
