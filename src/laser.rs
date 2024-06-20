@@ -30,6 +30,9 @@ pub struct LaserTempMarker;
 
 pub struct LaserEffects([Entity; 4]);
 
+const LASER_DPS: f32 = 0.05; 
+const LASER_SHOT_COST: f32 = 0.1;
+
 // ---
 
 fn spawn(
@@ -119,7 +122,7 @@ fn shot(
             for ef in &mut effects {
                 if i < 2 {
                     ef.1.reset();
-                    supplies.fluel_loss(0.1);
+                    supplies.fluel_loss(LASER_SHOT_COST);
                 } else {
                     let shift = (if i == 2 {-1.} else {1.}) * 5.2;
                     let ray_origin = drone_transform.translation + drone_transform.right() * shift  + drone_transform.forward() * 5.; 
@@ -135,7 +138,7 @@ fn shot(
                         if let Ok(oh) = victim_q.get_mut(e) {
                             if let Some(mut h) = oh {
                                 ev_writer.send(CollisionEvent::Started(Entity::PLACEHOLDER, e, CollisionEventFlags::all()));
-                                h.0 -= 0.1;
+                                h.0 -= LASER_DPS;
                             }
                         }
                     }

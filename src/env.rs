@@ -25,12 +25,12 @@ fn startup(
                 base_color: Color::rgb(0., 0., 0.),
                 ..default()
             }),
-            mesh: meshes.add(Cuboid::from_size(Vec3::new(50.,1.,50.))),
+            mesh: meshes.add(Cuboid::from_size(Vec3::new(100.,1.,100.))),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
         Name::new("Floor"),
-        Collider::cuboid(25., 0.5, 25.),
+        Collider::cuboid(50., 0.5, 50.),
         RigidBody::Fixed,
         Target
     ));
