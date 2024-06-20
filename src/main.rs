@@ -37,8 +37,8 @@ fn main() {
         DefaultPlugins.set(
             WindowPlugin {
                 primary_window : Some(Window {
-                    // resolution : WindowResolution::new(1400., 900.),
-                    mode: WindowMode::BorderlessFullscreen,
+                    resolution : WindowResolution::new(1400., 900.),
+                    // mode: WindowMode::BorderlessFullscreen,
                     position: WindowPosition::Centered(MonitorSelection::Primary),
                     ..default()
                 }),
