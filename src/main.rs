@@ -14,6 +14,7 @@ mod asteroids;
 mod docks;
 mod missile;
 mod laser;
+mod crosshair;
 mod target_select;
 // ===============
 
@@ -38,6 +39,7 @@ fn main() {
             WindowPlugin {
                 primary_window : Some(Window {
                     resolution : WindowResolution::new(1400., 900.),
+                    title: "Space Adventure".into(),
                     // mode: WindowMode::BorderlessFullscreen,
                     position: WindowPosition::Centered(MonitorSelection::Primary),
                     ..default()
@@ -52,6 +54,7 @@ fn main() {
         laser::LaserPlugin,
         asteroids::AsteroidsPlugin,
         docks::DocksPlugin,
+        crosshair::CrosshairPlugin,
         target_select::TargetSelectPlugin,
         // WorldInspectorPlugin::new(),
         // ComponentsFromGltfPlugin{legacy_mode: false},
@@ -62,7 +65,6 @@ fn main() {
         HanabiPlugin
     ))
     .init_state::<GameState>()
-    .add_event::<GameMessage>()
     .add_systems(Update, check_ready.run_if(in_state(GameState::Setup)))
     .run();
 }
@@ -73,9 +75,6 @@ pub enum GameState{
     Setup,
     Game
 }
-
-#[derive(Event, PartialEq)]
-pub struct  GameMessage(pub String);
 
 // ---
 
