@@ -4,6 +4,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_hanabi::prelude::*;
 use crate::effects::{engine, steer,ship_aura};
 use crate::camera::Focus;
+use crate::ui::{RegisterWidgets, ULayout, UpdateWidgets, WidgetRegData, WidgetUpdateData, WType};
 use crate::Target;
 use crate::GameState;
 use crate::docks::{Client, Dock};
@@ -14,13 +15,14 @@ pub struct DronePlugin;
 impl Plugin for DronePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn);
-        app.add_systems(Update, setup.run_if(in_state(GameState::Setup)));
+        app.add_systems(Update, (setup, setup_ui).run_if(in_state(GameState::Setup)));
 
         app.add_systems(Update, (
             input,
             movement,
             read_events,
             check_state,
+            update_indicators
         ).run_if(in_state(GameState::Game)));
         app.add_event::<DroneEvent>();
         app.add_event::<DroneControl>();
@@ -43,6 +45,16 @@ pub struct  Effects{
 
 //  - Effects
 
+// + UI Indicators 
+
+const I_VELOCITY: (&str, &str) = ("vel", "Vel"); 
+const I_DIST_XZ: (&str, &str) = ("d_xz","Dist XZ");
+const I_DIST_Y: (&str, &str) = ("d_y","Dist Y");
+const I_FLUEL: (&str, &str) = ("fluel","Fluel");
+const I_DIRECTION_KEY: &str = "dir";
+
+// - UI Indicators 
+
 // + Markers =====================================================================================================
 
 #[derive(Component)]
@@ -59,8 +71,8 @@ pub struct UnderService;
 
 use crate::NotReady;
 
-// #[derive(Component)]
-// pub struct Braking;
+#[derive(Component)]
+pub struct TempDroneUI;
 
 
 // - Markers =====================================================================================================
@@ -189,6 +201,7 @@ fn spawn(
     })
     ;
     
+    commands.spawn((NotReady, TempDroneUI));
 
 } 
 
@@ -199,7 +212,6 @@ fn setup (
     d_q: Query<(Entity, &Children), (With<NotReady>, With<Drone>)>,
     e_q: Query<(Entity, &PSEffect)>,
 ) {
-    
     for (e, children) in d_q.iter() {
         let mut effects = Effects{main: Entity::PLACEHOLDER, aux: Entity::PLACEHOLDER};
         for che in children.iter() {
@@ -214,6 +226,79 @@ fn setup (
         commands.entity(e).insert(effects);
         commands.entity(e).remove::<NotReady>();
     }
+}
+
+// ---
+
+fn setup_ui(
+    mut writer: EventWriter<RegisterWidgets>,
+    layout_q: Query<&ULayout>,
+    not_ready_q: Query<Entity, (With<NotReady>, With<TempDroneUI>)>,
+    mut commands: Commands,
+    asset: ResMut<AssetServer>,
+) {
+    let Ok(nr_ent) = not_ready_q.get_single() else {
+        return;
+    };
+
+    for le in layout_q.iter() {
+        if *le == ULayout::Header {
+            writer.send(
+                RegisterWidgets(
+                    vec![
+                        WidgetRegData {
+                            key: I_VELOCITY.0,
+                            label: I_VELOCITY.1,
+                            parent: ULayout::Header,
+                            wtype: WType::Text,
+                            image: None,
+                            start: 1,
+                            span: 2,
+                        },
+                        WidgetRegData {
+                            key: I_DIST_XZ.0,
+                            parent: ULayout::Header,
+                            wtype: WType::Text,
+                            label: I_DIST_XZ.1,
+                            start: 3,
+                            span: 2,
+                            image: None,
+                        },
+                        WidgetRegData {
+                            key: I_DIST_Y.0,
+                            parent: ULayout::Header,
+                            wtype: WType::Text,
+                            label: I_DIST_Y.1,
+                            start: 5,
+                            span: 2,
+                            image: None,
+                        },
+                        WidgetRegData {
+                            key: I_FLUEL.0,
+                            parent: ULayout::Header,
+                            wtype: WType::Text,
+                            label: I_FLUEL.1,
+                            start: 7,
+                            span: 2,
+                            image: None,
+                        },
+                        WidgetRegData {
+                            key: I_DIRECTION_KEY,
+                            parent: ULayout::Header,
+                            wtype: WType::Image,
+                            label: "",
+                            start: 9,
+                            span: 1,
+                            image: Some(asset.load("images/arrow.png")),
+                        },
+
+                    ]
+                )
+            );
+            commands.entity(nr_ent).despawn();
+        }
+    }
+
 }
 
 // ---
@@ -394,3 +479,40 @@ fn check_state (
     }
 }
 
+// ---
+
+fn update_indicators(
+    drone_q: Query<(&Velocity, &Transform, &Supplies), (With<Drone>, With<Focus>,  Without<Target>)>,
+    target_q: Query<&Transform, (With<Target>, Without<Drone>, Without<Focus>)>,
+    mut writer: EventWriter<UpdateWidgets>
+) {
+    let target_translation = if let Ok(target_transform) =  target_q.get_single()  {
+        target_transform.translation
+    } else {
+        Vec3::ZERO
+    };
+
+    let Ok((v, drone_transform, supplies)) = drone_q.get_single() else {
+        return;
+    };
+    let to_target = target_translation - drone_transform.translation;
+
+    let to_target_xz = to_target.normalize().reject_from_normalized(Vec3::Y);
+    let forward_xz: Vec3 = drone_transform.forward().into();
+    let dot = to_target_xz.dot(forward_xz);
+    let sign = to_target_xz.cross(forward_xz).y.signum();
+    let angle = dot.acos() * sign;
+
+    writer.send(UpdateWidgets(
+        vec![
+            WidgetUpdateData::from_key_value(I_VELOCITY.0, v.linvel.length()),
+            WidgetUpdateData::from_key_value(I_DIST_XZ.0, to_target.reject_from(Vec3::Y).length()),
+            WidgetUpdateData::from_key_value(I_DIST_Y.0, drone_transform.translation.y -  target_translation.y),
+            WidgetUpdateData::from_key_value_color(I_FLUEL.0, supplies.fluel_get(), if supplies.fluel_limit() {Color::ORANGE_RED} else {Color::YELLOW_GREEN}),
+            WidgetUpdateData::from_key_value(I_DIRECTION_KEY, angle),
+        ]
+    ));
+
+   
+    
+}
