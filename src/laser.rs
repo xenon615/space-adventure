@@ -13,7 +13,7 @@ impl Plugin for LaserPlugin {
     }
 }
 
-use crate::{drone::{Manual, Supplies}, effects::{laser, small_blast}, GameState, Health};
+use crate::{drone::{Manual, Fluel}, effects::{laser, small_blast}, GameState, Health};
 
 // ---
 
@@ -108,12 +108,12 @@ fn shot(
     mut ev_reader: EventReader<LaserShot>,
     mut ev_writer: EventWriter<CollisionEvent>,
     rapier_context: Res<RapierContext>,
-    mut drone_q: Query<(&Transform, &LaserEffects, &mut Supplies)>,
+    mut drone_q: Query<(&Transform, &LaserEffects, &mut Fluel)>,
     mut effects_q: Query<(&mut Transform, &mut EffectSpawner), Without<LaserEffects>>,
     mut victim_q: Query<Option<&mut Health>> ,
 ) {
     for ev in ev_reader.read() {
-        let Ok((drone_transform, effect_entities, mut supplies)) = drone_q.get_mut(ev.0) else {
+        let Ok((drone_transform, effect_entities, mut fluel)) = drone_q.get_mut(ev.0) else {
             continue;
         };
         if let Ok(mut effects) = effects_q.get_many_mut(effect_entities.0) {
@@ -122,7 +122,7 @@ fn shot(
             for ef in &mut effects {
                 if i < 2 {
                     ef.1.reset();
-                    supplies.fluel_loss(LASER_SHOT_COST);
+                    fluel.loss(LASER_SHOT_COST);
                 } else {
                     let shift = (if i == 2 {-1.} else {1.}) * 5.2;
                     let ray_origin = drone_transform.translation + drone_transform.right() * shift  + drone_transform.forward() * 5.; 

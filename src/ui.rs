@@ -1,4 +1,6 @@
-use bevy::prelude::*;
+use std::default;
+
+use bevy::{prelude::*, scene::ron::value};
 
 pub struct UIPlugin;
 impl Plugin for UIPlugin {
@@ -21,7 +23,8 @@ pub struct WidgetRegData{
     pub span: u16,
     pub key: &'static str,
     pub label: &'static str,
-    pub image: Option<Handle<Image>>
+    pub image: Option<Handle<Image>>,
+    pub default: Option<f32>
 }
 
 #[derive(Event, Debug)]
@@ -50,6 +53,7 @@ pub struct UpdateWidgets(pub Vec<WidgetUpdateData>);
 #[derive(Component, PartialEq)]
 pub struct WKey(pub &'static str);
 
+
 // + LAYOUT====================
 
 #[derive(Component, PartialEq, Debug)]
@@ -63,9 +67,11 @@ pub enum ULayout {
     SidebarRight
 }
 
-#[derive(Component, PartialEq, Debug)]
+#[derive(Component, PartialEq, Debug, Clone, Copy)]
 pub enum WType {
     Text,
+    Float,
+    Integer,
     Image
 }
 
@@ -191,7 +197,7 @@ fn register_widgets(
                         }
                     )
                     .with_children(| p | {
-                        if w.wtype == WType::Text {
+                        if w.wtype != WType::Image {
                             p.spawn(
                                 TextBundle::from_section(
                                     format!("{}: ", w.label), 
@@ -200,25 +206,31 @@ fn register_widgets(
                                         font_size: 25.,
                                         ..default()
                                     } 
-                                ).with_style(Style {
+                                )
+                                .with_style(Style {
                                     flex_basis: Val::Percent(50.),
                                     ..default()
                                 })
+                                .with_text_justify(JustifyText::Left)
                             );
                             p.spawn((
                                 TextBundle::from_section(
-                                    "", 
+                                    if let Some(default) = w.default { format_value(&w.wtype, default)
+                                    } else {"".to_string()}, 
                                     TextStyle {
                                         color: Color::GOLD.into(),
                                         font_size: 25.,
                                         ..default()
                                     } 
-                                ).with_style(Style {
+                                )
+                                .with_style(Style {
                                     flex_basis: Val::Percent(50.),
                                     ..default()
-                                }),
+                                })
+                                .with_text_justify(JustifyText::Right)
+                                ,
                                 WKey(w.key),
-                                WType::Text
+                                w.wtype.clone()
                             ));
     
                         } else {
@@ -233,7 +245,7 @@ fn register_widgets(
                                     ..default()
                                 },
                                 WKey(w.key),
-                                WType::Image
+                                w.wtype.clone()
                             ));
                         }
                     })
@@ -250,14 +262,18 @@ fn register_widgets(
 
 fn update_widget(
     mut reader : EventReader<UpdateWidgets>,
-    mut widget_q: Query<(Option< &mut Text>, &mut Transform, &WKey)> 
+    mut widget_q: Query<(Option< &mut Text>, &mut Transform, &WKey, &WType)> 
 ) {
     for ev in reader.read() {
         for w in ev.0.iter() {
-            for (text_o, mut trans ,key) in widget_q.iter_mut() {
+            for (text_o, mut trans, key, wtype) in widget_q.iter_mut() {
                 if w.key == key.0 {
                     if let Some(mut text) = text_o {
-                        text.sections[0].value = format!("{:.2}", w.value);
+                        // text.sections[0].value = format!("{:.2}", w.value);
+                        
+                        // text.sections[0].value = if  *wtype == WType::Float { format!("{:.2}", w.value)} else {format!("{}", w.value)};
+                        text.sections[0].value = format_value(wtype, w.value);
+
                         if let Some(c) = w.color {
                             text.sections[0].style.color = c;                        
                         }
@@ -270,3 +286,6 @@ fn update_widget(
     }
 }
 
+fn format_value(wtype: &WType, value: f32) -> String{
+    if  *wtype == WType::Float { format!("{:.2}", value)} else {format!("{}", value)}
+}

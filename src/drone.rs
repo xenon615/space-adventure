@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_hanabi::prelude::*;
-use crate::effects::{engine, steer,ship_aura};
+use crate::effects::{engine, steer, ship_aura};
 use crate::camera::Focus;
 use crate::ui::{RegisterWidgets, ULayout, UpdateWidgets, WidgetRegData, WidgetUpdateData, WType};
 use crate::Target;
@@ -87,38 +87,36 @@ pub struct Multiplier {
 
 // - Movement =====================================================================================================
 
+const FLUEL_CAPACITY: f32 = 1000.;
+
 #[derive(Component)]
-pub struct Supplies {
-    fluel: (f32, f32)
+pub struct Fluel(f32);
+impl Fluel{
+    pub fn gain(&mut self, v: f32) -> bool {
+        self.0 += f32::min(v, FLUEL_CAPACITY - self.0);
+        self.0 == FLUEL_CAPACITY
+    }
+
+    pub fn loss(&mut self, v: f32) -> bool {
+        self.0 -= f32::min(v, self.0);
+        self.0 == 0.
+    }
+
+    pub fn get(&self) -> f32 {
+        self.0
+    }
+
+    pub fn percent(&self) -> f32 {
+        self.0  / FLUEL_CAPACITY
+    }
+
+    fn limit(&self) -> bool {
+        self.percent() < 0.2
+    }
+
 }
 
-impl Supplies {
-    pub fn new(fluel: f32) -> Self{
-        Self{fluel:(fluel, 0.)}
-    }
 
-    pub fn fluel_gain(&mut self, v: f32) -> bool {
-        self.fluel.1 -= f32::min(v, self.fluel.1);
-        self.fluel.1 == 0.
-    }
-
-    pub fn fluel_loss(&mut self, v: f32) -> bool {
-        self.fluel.1 += f32::min(v, self.fluel.0 - self.fluel.1);
-        self.fluel.0 ==  self.fluel.1
-    }
-
-    pub fn fluel_get(&self) -> f32 {
-        self.fluel.0 - self.fluel.1
-    }
-
-    pub fn fluel_percent(&self) -> f32 {
-        (self.fluel.0 - self.fluel.1) / self.fluel.0
-    }
-
-    pub fn fluel_limit(&self) -> bool {
-        self.fluel_percent() < 0.2
-    }
-}
 
 // + Events =======================================================================================================
 
@@ -131,9 +129,6 @@ pub enum DroneEvent {
 
 #[derive(Event, PartialEq)]
 pub struct DroneControl((Entity, usize, f32)); 
-
-
-
 
 // - Events =======================================================================================================
 
@@ -155,7 +150,7 @@ fn spawn(
         Name::new("Drone"),
         Drone,
         Focus,
-        Supplies::new(1000.),
+        Fluel(FLUEL_CAPACITY),
         RigidBody::Dynamic,
         Collider::cuboid(1.25, 0.25, 2.25),
         GravityScale(0.),
@@ -250,37 +245,41 @@ fn setup_ui(
                             key: I_VELOCITY.0,
                             label: I_VELOCITY.1,
                             parent: ULayout::Header,
-                            wtype: WType::Text,
+                            wtype: WType::Float,
                             image: None,
                             start: 1,
                             span: 2,
+                            default: None
                         },
                         WidgetRegData {
                             key: I_DIST_XZ.0,
                             parent: ULayout::Header,
-                            wtype: WType::Text,
+                            wtype: WType::Float,
                             label: I_DIST_XZ.1,
                             start: 3,
                             span: 2,
                             image: None,
+                            default: None
                         },
                         WidgetRegData {
                             key: I_DIST_Y.0,
                             parent: ULayout::Header,
-                            wtype: WType::Text,
+                            wtype: WType::Float,
                             label: I_DIST_Y.1,
                             start: 5,
                             span: 2,
                             image: None,
+                            default: None
                         },
                         WidgetRegData {
                             key: I_FLUEL.0,
                             parent: ULayout::Header,
-                            wtype: WType::Text,
+                            wtype: WType::Float,
                             label: I_FLUEL.1,
                             start: 7,
                             span: 2,
                             image: None,
+                            default: None
                         },
                         WidgetRegData {
                             key: I_DIRECTION_KEY,
@@ -290,6 +289,7 @@ fn setup_ui(
                             start: 9,
                             span: 1,
                             image: Some(asset.load("images/arrow.png")),
+                            default: None
                         },
 
                     ]
@@ -365,13 +365,13 @@ fn input (
 
 fn movement(
     mut ev_reader: EventReader<DroneControl>,
-    mut drone_q: Query< (&Transform, &mut ExternalImpulse,&mut Damping, &Multiplier, &Effects, &mut Supplies),  (With<Drone>, Without<UnderService>)>,
+    mut drone_q: Query< (&Transform, &mut ExternalImpulse,&mut Damping, &Multiplier, &Effects, &mut Fluel),  (With<Drone>, Without<UnderService>)>,
     mut spawners_q: Query<(&mut Transform, &mut EffectSpawner), Without<Drone>>,
     time: Res<Time>
 ) {
     for ev in ev_reader.read() {
-        if let Ok((drone_transform, mut ei, mut dmp ,mult, effs, mut supplies)) = drone_q.get_mut(ev.0.0) {
-            if supplies.fluel_get() <= 0. {
+        if let Ok((drone_transform, mut ei, mut dmp ,mult, effs, mut fluel)) = drone_q.get_mut(ev.0.0) {
+            if fluel.get() <= 0. {
                 return;
             }
             let mut fluel_loss_mult: f32 = 0.;
@@ -413,7 +413,7 @@ fn movement(
             } 
 
             if fluel_loss_mult > 0. {
-                supplies.fluel_loss(ev.0.2.abs() * fluel_loss_mult);
+                fluel.loss(ev.0.2.abs() * fluel_loss_mult);
             }
 
         }
@@ -426,7 +426,7 @@ fn read_events (
     mut reader : EventReader<DroneEvent>,
     mut ev_writer: EventWriter<DroneControl>,
     mut commands: Commands,
-    mut drone_q: Query<&mut Supplies>
+    mut drone_q: Query<&mut Fluel>
 ) {
     for e in reader.read() {
         match e {
@@ -437,8 +437,8 @@ fn read_events (
                 ev_writer.send(DroneControl((*e, 3, 10.)));
             },
             DroneEvent::SupplyFluel {0: (e,v) } => {
-                if let Ok(mut sup ) = drone_q.get_mut(*e) {
-                    if sup.fluel_gain(*v) {
+                if let Ok(mut fluel ) = drone_q.get_mut(*e) {
+                    if fluel.gain(*v) {
                         commands.entity(*e).remove::<UnderService>();
                     }
                 }
@@ -451,12 +451,12 @@ fn read_events (
 
 fn check_state (
     mut commands: Commands,
-    drone_q: Query<(Entity, &Supplies, &Transform) , With<Drone>> ,
+    drone_q: Query<(Entity, &Fluel, &Transform) , With<Drone>> ,
     docks_q:Query<(&Transform, Entity), (With<Dock>, Without<Client>)>,
     target_q: Query<Entity, With<Target>>  
 ) {
-    if let Ok((drone_e, sup, drone_trans))  = drone_q.get_single() {
-        if sup.fluel_limit() {
+    if let Ok((drone_e, fluel, drone_trans))  = drone_q.get_single() {
+        if fluel.limit() {
             commands.entity(drone_e).insert(NeedService);
             let mut candidate = Entity::PLACEHOLDER;
             let mut min_distance =  f32::MAX;
@@ -482,7 +482,7 @@ fn check_state (
 // ---
 
 fn update_indicators(
-    drone_q: Query<(&Velocity, &Transform, &Supplies), (With<Drone>, With<Focus>,  Without<Target>)>,
+    drone_q: Query<(&Velocity, &Transform, &Fluel), (With<Drone>, With<Focus>,  Without<Target>)>,
     target_q: Query<&Transform, (With<Target>, Without<Drone>, Without<Focus>)>,
     mut writer: EventWriter<UpdateWidgets>
 ) {
@@ -492,7 +492,7 @@ fn update_indicators(
         Vec3::ZERO
     };
 
-    let Ok((v, drone_transform, supplies)) = drone_q.get_single() else {
+    let Ok((v, drone_transform, fluel)) = drone_q.get_single() else {
         return;
     };
     let to_target = target_translation - drone_transform.translation;
@@ -508,7 +508,7 @@ fn update_indicators(
             WidgetUpdateData::from_key_value(I_VELOCITY.0, v.linvel.length()),
             WidgetUpdateData::from_key_value(I_DIST_XZ.0, to_target.reject_from(Vec3::Y).length()),
             WidgetUpdateData::from_key_value(I_DIST_Y.0, drone_transform.translation.y -  target_translation.y),
-            WidgetUpdateData::from_key_value_color(I_FLUEL.0, supplies.fluel_get(), if supplies.fluel_limit() {Color::ORANGE_RED} else {Color::YELLOW_GREEN}),
+            WidgetUpdateData::from_key_value_color(I_FLUEL.0, fluel.get(), if fluel.limit() {Color::ORANGE_RED} else {Color::YELLOW_GREEN}),
             WidgetUpdateData::from_key_value(I_DIRECTION_KEY, angle),
         ]
     ));
