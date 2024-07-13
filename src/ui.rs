@@ -1,6 +1,4 @@
-use std::default;
-
-use bevy::{prelude::*, scene::ron::value};
+use bevy::prelude::*;
 
 pub struct UIPlugin;
 impl Plugin for UIPlugin {
@@ -69,7 +67,7 @@ pub enum ULayout {
 
 #[derive(Component, PartialEq, Debug, Clone, Copy)]
 pub enum WType {
-    Text,
+    // Text,
     Float,
     Integer,
     Image
@@ -124,7 +122,7 @@ fn get_bar() -> NodeBundle {
             grid_template_rows: GridTrack::percent(100.),
             ..default()
         },
-        background_color: Color::rgba(0., 1., 0., 0.005).into(),
+        background_color: Color::srgba(0., 1., 0., 0.005).into(),
         ..default()
     }
 }
@@ -152,7 +150,7 @@ fn get_sidebar () -> NodeBundle {
             flex_direction: FlexDirection::Column,
             ..default()
         },
-        background_color: Color::rgba(0., 0., 1., 0.005).into(),
+        background_color: Color::srgba(0., 0., 1., 0.005).into(),
         ..default()
     }
 }
@@ -202,23 +200,7 @@ fn register_widgets(
                                 TextBundle::from_section(
                                     format!("{}: ", w.label), 
                                     TextStyle {
-                                        color: Color::GOLD.into(),
-                                        font_size: 25.,
-                                        ..default()
-                                    } 
-                                )
-                                .with_style(Style {
-                                    flex_basis: Val::Percent(50.),
-                                    ..default()
-                                })
-                                .with_text_justify(JustifyText::Left)
-                            );
-                            p.spawn((
-                                TextBundle::from_section(
-                                    if let Some(default) = w.default { format_value(&w.wtype, default)
-                                    } else {"".to_string()}, 
-                                    TextStyle {
-                                        color: Color::GOLD.into(),
+                                        color: Srgba::rgb(1.0, 0.8, 1.0).into(),
                                         font_size: 25.,
                                         ..default()
                                     } 
@@ -228,6 +210,22 @@ fn register_widgets(
                                     ..default()
                                 })
                                 .with_text_justify(JustifyText::Right)
+                            );
+                            p.spawn((
+                                TextBundle::from_section(
+                                    if let Some(default) = w.default { format_value(&w.wtype, default)
+                                    } else {"".to_string()}, 
+                                    TextStyle {
+                                        color: Srgba::rgb(1.0, 0.8, 1.0).into(),
+                                        font_size: 25.,
+                                        ..default()
+                                    } 
+                                )
+                                .with_style(Style {
+                                    flex_basis: Val::Percent(50.),
+                                    ..default()
+                                })
+                                .with_text_justify(JustifyText::Left)
                                 ,
                                 WKey(w.key),
                                 w.wtype.clone()

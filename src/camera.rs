@@ -1,23 +1,20 @@
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-
-
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::prelude::*;
 use bevy::core_pipeline::Skybox;
-// use bevy_rapier3d::prelude::*;
-// use bevy::transform::TransformSystem;
+use avian3d::schedule::PhysicsSet;
 
 pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup); 
-        // app.add_systems(PostUpdate, 
-        //     follow
-        //     .run_if(not(in_state(CamViewState::Free)))
-        //     .after(PhysicsSet::SyncBackend)
-        //     .before(TransformSystem::TransformPropagate)
-        // );
-        app.add_systems(Update, follow.run_if(not(in_state(CamViewState::Free))));
+        app.add_systems(PostUpdate, 
+            follow
+            .run_if(not(in_state(CamViewState::Free)))
+            .after(PhysicsSet::Sync)
+            .before(TransformSystem::TransformPropagate)
+        );
+        // app.add_systems(Update, follow.run_if(not(in_state(CamViewState::Free))));
 
         app.add_systems(Update, switch_state);
 

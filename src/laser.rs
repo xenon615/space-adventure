@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
+// use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
+use avian3d::prelude::*;
 use bevy_hanabi::prelude::*;
 
 pub struct LaserPlugin;
@@ -106,8 +107,10 @@ fn input (
 
 fn shot(
     mut ev_reader: EventReader<LaserShot>,
-    mut ev_writer: EventWriter<CollisionEvent>,
-    rapier_context: Res<RapierContext>,
+    // mut ev_writer: EventWriter<CollisionEvent>,
+    mut ev_writer: EventWriter<CollisionEnded>,
+    // rapier_context: Res<RapierContext>,
+    spatial: SpatialQuery,
     mut drone_q: Query<(&Transform, &LaserEffects, &mut Fluel)>,
     mut effects_q: Query<(&mut Transform, &mut EffectSpawner), Without<LaserEffects>>,
     mut victim_q: Query<Option<&mut Health>> ,
@@ -126,22 +129,45 @@ fn shot(
                 } else {
                     let shift = (if i == 2 {-1.} else {1.}) * 5.2;
                     let ray_origin = drone_transform.translation + drone_transform.right() * shift  + drone_transform.forward() * 5.; 
-                    if let Some((e, toi)) = rapier_context.cast_ray(
+
+                    // if let Some((e, toi)) = rapier_context.cast_ray(
+                    //     ray_origin, 
+                    //     drone_transform.forward().into(),
+                    //     200.,
+                    //     true, 
+                    //     QueryFilter::default()
+                    // ) {
+                    //     ef.0.translation = ray_origin + drone_transform.forward() * toi;
+                    //     ef.1.reset();
+                    //     if let Ok(oh) = victim_q.get_mut(e) {
+                    //         if let Some(mut h) = oh {
+                    //             ev_writer.send(CollisionEvent::Started(Entity::PLACEHOLDER, e, CollisionEventFlags::all()));
+                    //             h.0 -= LASER_DPS;
+                    //         }
+                    //     }
+                    // }
+
+                    if let Some(hit) = spatial.cast_ray(
                         ray_origin, 
                         drone_transform.forward().into(),
                         200.,
                         true, 
-                        QueryFilter::default()
+                        SpatialQueryFilter::default()
                     ) {
-                        ef.0.translation = ray_origin + drone_transform.forward() * toi;
+                        
+                        ef.0.translation = ray_origin + drone_transform.forward() * hit.time_of_impact;
                         ef.1.reset();
-                        if let Ok(oh) = victim_q.get_mut(e) {
+                        if let Ok(oh) = victim_q.get_mut(hit.entity) {
                             if let Some(mut h) = oh {
-                                ev_writer.send(CollisionEvent::Started(Entity::PLACEHOLDER, e, CollisionEventFlags::all()));
+                                ev_writer.send(CollisionEnded(Entity::PLACEHOLDER, hit.entity));
                                 h.0 -= LASER_DPS;
                             }
                         }
                     }
+
+
+
+
                 }
                 i += 1; 
             }

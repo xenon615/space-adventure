@@ -1,6 +1,5 @@
-use std::time::Duration;
-use bevy::{prelude::*, time::common_conditions::on_timer};
-use bevy_rapier3d::prelude::*;
+use bevy::prelude::*;
+use avian3d::prelude::*;
 use bevy_hanabi::prelude::*;
 use crate::{drone, GameState, NotReady};
 use drone::Manual;
@@ -13,8 +12,7 @@ impl Plugin for MissilePlugin {
         app.add_systems(Update, (input, ));
         app.add_systems(Update, shot.run_if(on_event::<MissileShot>()));
         app.add_systems(Update, destroy.run_if(on_event::<MissileDestroy>()));
-        app.add_systems(Update, clean.run_if(on_timer(Duration::from_secs(1))));
-        app.add_systems(Update, collision.run_if(on_event::<CollisionEvent>()));
+        app.add_systems(Update, collision.run_if(on_event::<CollisionEnded>()));
 
         app.add_event::<MissileShot>();
         app.add_event::<MissileDestroy>();
@@ -45,7 +43,7 @@ use crate::ui::{RegisterWidgets, ULayout, UpdateWidgets, WType, WidgetRegData, W
 pub struct MissileTempMarker;
 
 const MISSILES_CAPACITY: i32 = 10;
-const I_MISSILES: (&str, &str) = ("m", "Msl");
+const I_MISSILES: (&str, &str) = ("m", "M");
 #[derive(Component)]
 pub struct Missiles(i32);
 
@@ -69,7 +67,6 @@ fn setup (
     drones_q: Query<Entity, (With<Drone>, Without<Missiles>)>,
     check_q: Query<Entity, (With<NotReady>, With<MissileTempMarker>)>,
     mut writer: EventWriter<RegisterWidgets>,
-    mut writer2: EventWriter<UpdateWidgets>
 ) {
     if drones_q.is_empty() {
         if let Ok(e) = check_q.get_single() {
@@ -134,18 +131,17 @@ fn shot(
         ])); 
         commands.spawn((
             PbrBundle {
-                material: materials.add(Color::SILVER),
+                material: materials.add(Color::srgba(0.3, 0.3, 0.3, 0.5)),
                 mesh: meshes.add(Sphere::new(BALL_RADIUS)),
-                transform: Transform::from_translation(drone_trans.translation + drone_trans.forward() * 15.).looking_to(drone_trans.forward().into(), Vec3::Y),
+                transform: Transform::from_translation(drone_trans.translation + drone_trans.forward() * 15.).looking_to(drone_trans.forward(), Vec3::Y),
                 ..default()
             },
             Missile,
-            LifeTime(time.elapsed_seconds()),
+            LifeTime(time.elapsed_seconds() + 10.),
             RigidBody::Dynamic,
             GravityScale(0.),
-            Collider::ball(BALL_RADIUS),
-            ExternalImpulse {impulse: drone_trans.forward() * 5. , torque_impulse: Vec3::ZERO},
-            ActiveEvents::COLLISION_EVENTS,
+            Collider::sphere(BALL_RADIUS),
+            ExternalImpulse::new(drone_trans.forward() * 5.),
         ))
         .with_children(|p| {
             p.spawn((
@@ -157,24 +153,8 @@ fn shot(
             ));
         })
         ;
-        
-
     }
 
-}
-
-// ---
-
-fn clean(
-    delete_q: Query<(Entity,  &LifeTime), With<Missile>>,
-    mut ev_writer: EventWriter<MissileDestroy>,    
-    time: Res<Time>,
-) {
-    for (e,  lifetime,) in delete_q.iter() {
-        if lifetime.0 + 10. < time.elapsed_seconds() {
-            ev_writer.send(MissileDestroy(e));
-        }
-    }
 }
 
 // ---
@@ -199,17 +179,14 @@ fn destroy(
 // ---
 
 fn collision(
-    mut collision_events: EventReader<CollisionEvent>,
+    mut collision_events: EventReader<CollisionEnded>,
     e_q: Query<Entity, With<Missile>>,
     mut ev_writer: EventWriter<MissileDestroy>
 ) {
-    for c_ev  in  collision_events.read() {
-        if let CollisionEvent::Stopped(e1, e2, _) = c_ev {
-            for e0 in e_q.iter().filter(|e| {e == e1 || e == e2}) {
-                ev_writer.send(MissileDestroy(e0));
-                break;    
-            }
+    for CollisionEnded(e1, e2)  in  collision_events.read() {
+        for e0 in e_q.iter().filter(|e| {e == e1 || e == e2}) {
+            ev_writer.send(MissileDestroy(e0));
+            break;    
         }
-    }
+    }    
 }
-

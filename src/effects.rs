@@ -150,7 +150,8 @@ pub fn ship_aura() ->EffectAsset {
 pub fn dock_aura() ->EffectAsset {
     let writer = ExprWriter::new();
 
-    let p_color = writer.add_property("p_color", Color::rgba(0.0, 14.0, 4.0, 1.).as_rgba_u32().into());
+    // let p_color = writer.add_property("p_color", Color::srgba(0.0, 14.0, 4.0, 1.).as_srgba_u32().into());
+    let p_color = writer.add_property("p_color", LinearRgba::GREEN.as_u32().into());
     let init_color = SetAttributeModifier::new(Attribute::COLOR, writer.prop(p_color).expr());
 
     let size_modifier = SetSizeModifier {

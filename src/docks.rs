@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use bevy::time::common_conditions::on_timer;
 use bevy_hanabi::EffectProperties;
 use bevy_hanabi::{ParticleEffect, ParticleEffectBundle, EffectAsset};
-use bevy_rapier3d::prelude::*;
+use avian3d::prelude::*;
 use crate::effects::*;
 
 pub struct DocksPlugin;
@@ -22,9 +22,6 @@ impl Plugin for DocksPlugin {
 
 #[derive(Component)]
 pub struct Dock;
-
-#[derive(Component)]
-pub struct SupplyEffect;
 
 #[derive(Component)]
 pub struct Aura(Entity);
@@ -53,17 +50,16 @@ fn spawn (
             PbrBundle {
                 mesh: meshes.add(Sphere::new(5.)),
                 material: materials.add(StandardMaterial {
-                    base_color: Color::rgba(0., 0., 0., 0.5),
+                    base_color: Color::srgba(0., 0., 0., 0.5),
                     reflectance: 1.,
-                    emissive:Color::rgba(1., 4., 1., 0.5),
                     ..default()
                 }),
                 transform: Transform::from_translation(dock_position),
                 ..default()
             },
             Dock,
-            RigidBody::Fixed,
-            Collider::ball(5.),
+            RigidBody::Static,
+            Collider::sphere(5.),
         ))
         .with_children(|p| {
             aura_id = p.spawn(
@@ -111,7 +107,7 @@ fn service(
 ) {
     for (client_e, aura_e ) in docks_q.iter() {
         if let Ok(props) = effect_q.get_mut(aura_e.0) {
-            let color = Color::rgba(10.0, 6.0, 0.0, 1.).as_rgba_u32();
+            let color = LinearRgba::rgb(10.0, 6.0, 0.0).as_u32();
             EffectProperties::set_if_changed(props, "p_color", color.into());
         }
         ev_writer.send(DroneEvent::SupplyFluel((client_e.0, 1.0)));
@@ -130,7 +126,7 @@ fn service_free(
         for (client, aura, dock_ent) in docks_q.iter() {
             if client_en == client.0 {
                 if let Ok(props) = effect_q.get_mut(aura.0) {
-                    let color = Color::rgba(0.0, 14.0, 4.0, 1.).as_rgba_u32();
+                    let color = LinearRgba::rgb(0.0, 14.0, 4.0).as_u32();
                     EffectProperties::set_if_changed(props, "p_color", color.into());
                     commands.entity(dock_ent).remove::<Client>();
                 }

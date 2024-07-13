@@ -1,7 +1,8 @@
 use bevy::input::mouse::MouseButtonInput;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_rapier3d::prelude::*;
+// use bevy_rapier3d::prelude::*;
+use avian3d::prelude::*;
 
 use crate::camera::Cam;
 use crate::Target;
@@ -17,7 +18,8 @@ fn mouse_click(
     mut q_camera: Query<(&Camera, &GlobalTransform), With<Cam>>,
     q_window: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
-    rapier_context: Res<RapierContext>,
+    // rapier_context: Res<RapierContext>,
+    raycast_q: SpatialQuery,
     old_target_q: Query<Entity, With<Target>>,
     mut commands: Commands
 ) {
@@ -34,20 +36,31 @@ fn mouse_click(
             return;
         };
     
-        if let Some((entity, _)) = rapier_context.cast_ray(
+        // if let Some((entity, _)) = rapier_context.cast_ray(
+        //     ray.origin, 
+        //     ray.direction.into(),
+        //     f32::MAX,
+        //     true, 
+        //     QueryFilter::default()
+        // ) {
+        //     if let Ok(old_target) = old_target_q.get_single() {
+        //         commands.entity(old_target).remove::<Target>();
+        //     }
+        //     commands.entity(entity).insert(Target);
+        // }
+
+        if let Some(hit) = raycast_q.cast_ray(
             ray.origin, 
             ray.direction.into(),
             f32::MAX,
             true, 
-            QueryFilter::default()
+            SpatialQueryFilter::default()
         ) {
             if let Ok(old_target) = old_target_q.get_single() {
                 commands.entity(old_target).remove::<Target>();
             }
-            commands.entity(entity).insert(Target);
+            commands.entity(hit.entity).insert(Target);
         }
-
-
     }
 
 }
