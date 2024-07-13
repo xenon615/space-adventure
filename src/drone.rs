@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
+use avian3d::prelude::*;
 use bevy_hanabi::prelude::*;
 use crate::effects::{engine, steer, ship_aura};
 use crate::camera::Focus;
@@ -8,6 +8,7 @@ use crate::ui::{RegisterWidgets, ULayout, UpdateWidgets, WidgetRegData, WidgetUp
 use crate::Target;
 use crate::GameState;
 use crate::docks::{Client, Dock};
+use bevy::color::palettes::css::*;
 
 // ---
 
@@ -116,10 +117,7 @@ impl Fluel{
 
 }
 
-
-
 // + Events =======================================================================================================
-
 
 #[derive(Event, PartialEq)]
 pub enum DroneEvent {
@@ -144,7 +142,7 @@ fn spawn(
     commands.spawn((
         SceneBundle {
             scene: asset.load("models/ship2.glb#Scene0"),
-            transform: Transform::from_xyz(0., 10., 0.) ,
+            transform: Transform::from_xyz(0., 10., 0.),
             ..default()
         },
         Name::new("Drone"),
@@ -154,11 +152,11 @@ fn spawn(
         RigidBody::Dynamic,
         Collider::cuboid(1.25, 0.25, 2.25),
         GravityScale(0.),
-        ExternalImpulse {impulse:Vec3::ZERO, torque_impulse: Vec3::ZERO},
-        Multiplier {linear: 100., angular: 10.},
-        Velocity::default(),
-        Damping{linear_damping: LINEAR_DAMPING_DEFAULT, angular_damping: 5.},
-        LockedAxes::ROTATION_LOCKED_X | LockedAxes::ROTATION_LOCKED_Z,
+        ExternalImpulse::new(Vec3::ZERO),
+        Multiplier {linear: 10., angular: 1.},
+        LinearDamping(LINEAR_DAMPING_DEFAULT),
+        AngularDamping(5.0),
+        LockedAxes::new().lock_rotation_x().lock_rotation_z(),
         Manual,
         NotReady
     ))
@@ -338,11 +336,11 @@ fn input (
         }
 
         if keys.pressed(KeyCode::KeyD) {
-            ev_writer.send(DroneControl((e, 2, 10.)));
+            ev_writer.send(DroneControl((e, 2, 5.)));
         }
 
         if keys.pressed(KeyCode::KeyA) {
-            ev_writer.send(DroneControl((e, 2, -10.)));
+            ev_writer.send(DroneControl((e, 2, -5.)));
         }
 
         if keys.pressed(KeyCode::KeyB) {
@@ -365,18 +363,19 @@ fn input (
 
 fn movement(
     mut ev_reader: EventReader<DroneControl>,
-    mut drone_q: Query< (&Transform, &mut ExternalImpulse,&mut Damping, &Multiplier, &Effects, &mut Fluel),  (With<Drone>, Without<UnderService>)>,
+    mut drone_q: Query< (&Transform, &mut ExternalImpulse, &mut ExternalAngularImpulse,  &mut LinearDamping, &Multiplier, &Effects, &mut Fluel),  (With<Drone>, Without<UnderService>)>,
     mut spawners_q: Query<(&mut Transform, &mut EffectSpawner), Without<Drone>>,
     time: Res<Time>
 ) {
     for ev in ev_reader.read() {
-        if let Ok((drone_transform, mut ei, mut dmp ,mult, effs, mut fluel)) = drone_q.get_mut(ev.0.0) {
+        if let Ok((drone_transform, mut ei,mut eai ,  mut dmp ,mult, effs, mut fluel)) = drone_q.get_mut(ev.0.0) {
             if fluel.get() <= 0. {
                 return;
             }
             let mut fluel_loss_mult: f32 = 0.;
             if ev.0.1 == 0 {
-                ei.impulse = drone_transform.forward() * mult.linear * ev.0.2 * time.delta_seconds();
+                ei.set_impulse(drone_transform.forward() * mult.linear * ev.0.2 * time.delta_seconds());
+
                 fluel_loss_mult = 0.1;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.main) {
                     loc_trans.translation.z = 6.1 * ev.0.2.signum();
@@ -387,7 +386,7 @@ fn movement(
             }
 
             if ev.0.1 == 1 {
-                ei.impulse = drone_transform.up() * mult.linear * ev.0.2   * time.delta_seconds();
+                ei.set_impulse(drone_transform.up() * mult.linear * ev.0.2   * time.delta_seconds());
                 fluel_loss_mult = 0.1;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.main) {
                     loc_trans.translation.z = 1.;
@@ -398,7 +397,7 @@ fn movement(
             }
 
             if ev.0.1 == 2 {
-                ei.torque_impulse = drone_transform.up() * -ev.0.2  * time.delta_seconds() * mult.angular;
+                eai.set_impulse(drone_transform.up() * -ev.0.2  * time.delta_seconds() * mult.angular);
                 fluel_loss_mult = 0.05;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.aux) {
                     loc_trans.translation.x = - ev.0.2.signum() * 5.5;
@@ -407,9 +406,9 @@ fn movement(
             }
 
             if ev.0.1 == 3 {
-                dmp.linear_damping = ev.0.2;
+                dmp.0 = ev.0.2;
             } else {
-                dmp.linear_damping = LINEAR_DAMPING_DEFAULT;
+                dmp.0 = LINEAR_DAMPING_DEFAULT;
             } 
 
             if fluel_loss_mult > 0. {
@@ -482,7 +481,7 @@ fn check_state (
 // ---
 
 fn update_indicators(
-    drone_q: Query<(&Velocity, &Transform, &Fluel), (With<Drone>, With<Focus>,  Without<Target>)>,
+    drone_q: Query<(&LinearVelocity, &Transform, &Fluel), (With<Drone>, With<Focus>,  Without<Target>)>,
     target_q: Query<&Transform, (With<Target>, Without<Drone>, Without<Focus>)>,
     mut writer: EventWriter<UpdateWidgets>
 ) {
@@ -505,14 +504,11 @@ fn update_indicators(
 
     writer.send(UpdateWidgets(
         vec![
-            WidgetUpdateData::from_key_value(I_VELOCITY.0, v.linvel.length()),
+            WidgetUpdateData::from_key_value(I_VELOCITY.0, v.length()),
             WidgetUpdateData::from_key_value(I_DIST_XZ.0, to_target.reject_from(Vec3::Y).length()),
             WidgetUpdateData::from_key_value(I_DIST_Y.0, drone_transform.translation.y -  target_translation.y),
-            WidgetUpdateData::from_key_value_color(I_FLUEL.0, fluel.get(), if fluel.limit() {Color::ORANGE_RED} else {Color::YELLOW_GREEN}),
+            WidgetUpdateData::from_key_value_color(I_FLUEL.0, fluel.get(), if fluel.limit() {ORANGE_RED.into()} else {YELLOW_GREEN.into()}),
             WidgetUpdateData::from_key_value(I_DIRECTION_KEY, angle),
         ]
     ));
-
-   
-    
 }

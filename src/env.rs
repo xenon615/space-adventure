@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
+use avian3d::prelude::*;
+
 
 use crate::Target;
 
@@ -21,34 +22,16 @@ fn startup(
     al.brightness = 100.;
     commands.spawn((
         PbrBundle {
-            material: materials.add(StandardMaterial {
-                base_color: Color::rgb(0., 0., 0.),
-                ..default()
-            }),
+            material: materials.add(Color::srgb(0., 0., 0.)),
             mesh: meshes.add(Cuboid::from_size(Vec3::new(100.,1.,100.))),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
         Name::new("Floor"),
         Collider::cuboid(50., 0.5, 50.),
-        RigidBody::Fixed,
+        RigidBody::Static,
         Target
     ));
-    
-    // commands.spawn((
-    //     PbrBundle {
-    //         material: materials.add(StandardMaterial {
-    //             base_color: Color::rgb(0., 0.,1.),
-    //             ..default()
-    //         }),
-    //         mesh: meshes.add(Cuboid::from_size(Vec3::new(50.,50.,50.))),
-    //         transform: Transform::from_xyz(500., 500., 500.),
-    //         ..default()
-    //     },
-    //     Name::new("Dummy"),
-    //     Collider::cuboid(25., 25., 25.),
-    //     RigidBody::Fixed,
-    // ));
 
     commands.spawn(DirectionalLightBundle{
         directional_light: DirectionalLight {
@@ -57,6 +40,16 @@ fn startup(
             ..default()
         },
         transform: Transform::from_xyz(100., 100., 100.),
+        ..default()
+    });
+
+    commands.spawn(DirectionalLightBundle{
+        directional_light: DirectionalLight {
+            color: Color::srgb(1., 0.65, 0.),
+            illuminance: 10000.,
+            ..default()
+        },
+        transform: Transform::from_xyz(-100., 100., -100.),
         ..default()
     });
    

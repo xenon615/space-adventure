@@ -1,16 +1,17 @@
-use std::time::Duration;
+// use std::time::Duration;
 use bevy::prelude::*;
-use bevy::time::common_conditions::on_timer;
-use bevy_rapier3d::prelude::*;
+// use bevy::time::common_conditions::on_timer;
+use avian3d::prelude::*;
 
 use crate::missile::Missile;
 use crate::Health;
 pub struct AsteroidsPlugin;
 impl Plugin for AsteroidsPlugin{
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn);
-        app.add_systems(Update, (collision, check).chain().run_if(on_event::<CollisionEvent>()));
-        app.add_systems(Update, cleanup.run_if(on_timer(Duration::from_secs(5))));
+        app
+        .add_systems(Startup, spawn)
+        .add_systems(Update, (collision, check).chain().run_if(on_event::<CollisionEnded>()))
+        ;
     }
 }
 
@@ -48,7 +49,6 @@ fn spawn(
             mesh.clone(), material.clone() 
         ));
 
-
         for _j in 0..20 {
             let initial_pos = Vec3::new(fastrand::i32(range_xz.clone()) as _ , fastrand::i32(range_y.clone()) as _, fastrand::i32(range_xz.clone()) as _);
             let target = Vec3::splat(0.) + Vec3::new(fastrand::i32(deviation_range.clone()) as _ , fastrand::i32(deviation_range.clone()) as _, fastrand::i32(deviation_range.clone()) as _);
@@ -64,30 +64,30 @@ fn spawn(
                 Health(ASTEROID_HEALTH),
                 RigidBody::Dynamic,
                 GravityScale(0.),
-                Collider::ball(10.),
-                ActiveEvents::COLLISION_EVENTS,
-                ExternalImpulse{impulse: (target - initial_pos) * 50., torque_impulse: Vec3::Y * 2.}
+                Collider::sphere(10.),
+                ExternalImpulse::new((target - initial_pos) * 50.),
+                ExternalAngularImpulse::new(Vec3::Y * 2.)
             ));    
         }
     }
+
     commands.insert_resource(MatMeshes(mm));
+
 } 
 
 // ---
 
 fn collision(
-    mut collision_events: EventReader<CollisionEvent>,
+    mut collision_events: EventReader<CollisionEnded>,
     mut e_q: Query<(Entity, &mut Health), With<Asteroid>>,
     m_q: Query<Entity, With<Missile>>
 ) {
-    for c_ev  in  collision_events.read() {
-        if let CollisionEvent::Started(e1, e2, _) = c_ev {
-            for (_, mut h) in e_q.iter_mut().filter(|(e, _)| {e == e1 || e == e2}) {
-                if m_q.contains(*e1) || m_q.contains(*e2) {
-                    h.0 -= 10.;
-                } 
-                break;    
-            }
+    for CollisionEnded(e1, e2)  in  collision_events.read() {
+        for (_, mut h) in e_q.iter_mut().filter(|(e, _)| {e == e1 || e == e2}) {
+            if m_q.contains(*e1) || m_q.contains(*e2) {
+                h.0 -= 10.;
+            } 
+            break;    
         }
     }
 }
@@ -104,27 +104,26 @@ fn check(
     for (e, h, at, tr) in e_q.iter() {
         if h.0 <= 0. {
             commands.entity(e).despawn_recursive();
-
             let fragment_count =  fastrand::u32(10..20) as usize;  
-            let lattice = fibonacci_sphere(fragment_count);
-            for i in 0..= fragment_count {
+            for i in fibonacci_sphere(fragment_count) {
                 let scale = fastrand::u32(1..6) as f32 / 10.;
                 commands.spawn((
                     PbrBundle {
                         mesh : mm.0[at.0].0.clone(),
                         material: mm.0[at.0].1.clone(),
-                        transform: Transform::from_translation(tr.translation + lattice[i]).with_scale(Vec3::splat(scale) * tr.scale.x),
+                        transform: Transform::from_translation(tr.translation + i).with_scale(Vec3::splat(scale) * tr.scale.x),
                         ..default()
                     },
-                    Collider::ball(10. * scale * tr.scale.x),
-                    Damping{linear_damping:0.5, angular_damping: 0.3},
+                    Collider::sphere(10. * scale * tr.scale.x),
+                    LinearDamping(0.5),
+                    AngularDamping(0.8),
                     Asteroid,
                     AsteroidType(at.0),
                     GravityScale(0.),
                     RigidBody::Dynamic,
-                    Health(10.),
-                    LifeTime(time.elapsed_seconds()),
-                    ExternalImpulse{impulse: lattice[i] * 10., torque_impulse: lattice[i]}
+                    LifeTime(time.elapsed_seconds() + 5.),
+                    ExternalImpulse::new(i),
+                    ExternalAngularImpulse::new(i)
                 ));
             }
         }
@@ -133,23 +132,9 @@ fn check(
 
 // ---
 
-fn cleanup(
-    mut commands: Commands,
-    delete_q: Query<(Entity,  &LifeTime), With<Asteroid>>,
-    time: Res<Time>,
-) {
-    for (e,  lifetime,) in delete_q.iter() {
-        if lifetime.0 + 5. < time.elapsed_seconds() {
-            commands.entity(e).despawn_recursive();
-        }
-    }
-}
-
-// ---
-
 fn fibonacci_sphere(count: usize) -> Vec<Vec3> {
     let phi = std::f32::consts::PI * (5.0_f32.sqrt() - 1.);
-    (0..= count).map(|i| {
+    (0 .. count).map(|i| {
         let y = 1. - (i as f32 / (count - 1) as f32) * 2.;  
         let radius = (1. - y * y).sqrt();
         let theta = phi * i as f32;

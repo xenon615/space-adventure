@@ -7,12 +7,12 @@ edition = "2021"
 
 [dependencies]
 fastrand = "2.1.0"
-bevy-inspector-egui = "0.24.0"
+# bevy-inspector-egui = "0.24.0"
 # bevy_gltf_components = "0.5"
 # bevy_registry_export = "0.3"
-bevy_rapier3d = { version = "0.26.0",  features = [ "simd-stable", "debug-render-3d" ]  }
-bevy_panorbit_camera= "0.18.2"
-bevy_hanabi = {version = "0.11.0" , default-features = false , features = ["3d"] }
+avian3d = "0.1"
+bevy_panorbit_camera= "0.19.1"
+bevy_hanabi = {version = "0.12.0" , default-features = false , features = ["3d"] }
 
 
 
@@ -29,7 +29,7 @@ opt-level = 3
 # opt-level = 'z'
 
 [dependencies.bevy]
-version="0.13.2"
+version="0.14.0"
 default-features = false
 features = [
     # default ---
@@ -43,10 +43,12 @@ features = [
     "bevy_pbr",
     "bevy_gltf",
     "bevy_render",
+    "bevy_state",
     # "bevy_sprite",
     # "bevy_text",
     "bevy_ui",
-    "multi-threaded",
+    
+    
     "png",
     # "jpeg",
     #"ktx2",   # Preferred format for GPU textures
@@ -61,7 +63,7 @@ features = [
     # "webgl2",
     
     # optional ---
-    # "dynamic_linking",  #FOR DEBUG!!!
+    "dynamic_linking",  #FOR DEBUG!!!
 ]
 
 [profile.release]
