@@ -126,7 +126,7 @@ pub enum DroneEvent {
 }
 
 #[derive(Event, PartialEq)]
-pub struct DroneControl((Entity, usize, f32)); 
+pub struct DroneControl(pub Entity, pub u8, pub f32); 
 
 // - Events =======================================================================================================
 
@@ -320,39 +320,39 @@ fn input (
         };
 
         if keys.pressed(KeyCode::KeyW) {
-            ev_writer.send(DroneControl((e, 0, 1.)));
+            ev_writer.send(DroneControl(e, 0, 1.));
         }
 
         if keys.pressed(KeyCode::KeyS) {
-            ev_writer.send(DroneControl((e, 0, -1.)));
+            ev_writer.send(DroneControl(e, 0, -1.));
         }
 
         if keys.pressed(KeyCode::ArrowUp) {
-            ev_writer.send(DroneControl((e, 1, 1.)));
+            ev_writer.send(DroneControl(e, 1, 1.));
         }
 
         if keys.pressed(KeyCode::ArrowDown) {
-            ev_writer.send(DroneControl((e, 1, -1.)));
+            ev_writer.send(DroneControl(e, 1, -1.));
         }
 
         if keys.pressed(KeyCode::KeyD) {
-            ev_writer.send(DroneControl((e, 2, 5.)));
+            ev_writer.send(DroneControl(e, 2, 5.));
         }
 
         if keys.pressed(KeyCode::KeyA) {
-            ev_writer.send(DroneControl((e, 2, -5.)));
+            ev_writer.send(DroneControl(e, 2, -5.));
         }
 
         if keys.pressed(KeyCode::KeyB) {
-            ev_writer.send(DroneControl((e, 3, 10.)));
+            ev_writer.send(DroneControl(e, 3, 10.));
         } 
 
         if keys.pressed(KeyCode::ArrowLeft) {
-            ev_writer.send(DroneControl((e, 2, -2.)));
+            ev_writer.send(DroneControl(e, 2, -2.));
         } 
 
         if keys.pressed(KeyCode::ArrowRight) {
-            ev_writer.send(DroneControl((e, 2, 2.)));
+            ev_writer.send(DroneControl(e, 2, 2.));
         } 
 
     }
@@ -368,51 +368,51 @@ fn movement(
     time: Res<Time>
 ) {
     for ev in ev_reader.read() {
-        if let Ok((drone_transform, mut ei,mut eai ,  mut dmp ,mult, effs, mut fluel)) = drone_q.get_mut(ev.0.0) {
+        if let Ok((drone_transform, mut ei,mut eai ,  mut dmp ,mult, effs, mut fluel)) = drone_q.get_mut(ev.0) {
             if fluel.get() <= 0. {
                 return;
             }
             let mut fluel_loss_mult: f32 = 0.;
-            if ev.0.1 == 0 {
-                ei.set_impulse(drone_transform.forward() * mult.linear * ev.0.2 * time.delta_seconds());
+            if ev.1 == 0 {
+                ei.set_impulse(drone_transform.forward() * mult.linear * ev.2 * time.delta_seconds());
 
                 fluel_loss_mult = 0.1;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.main) {
-                    loc_trans.translation.z = 6.1 * ev.0.2.signum();
+                    loc_trans.translation.z = 6.1 * ev.2.signum();
                     loc_trans.translation.y = 0.;
-                    loc_trans.rotation = Quat::from_euler(EulerRot::XYZ, ev.0.2 * PI / 2., 0., 0.);
+                    loc_trans.rotation = Quat::from_euler(EulerRot::XYZ, ev.2 * PI / 2., 0., 0.);
                     s.reset();
                 }
             }
 
-            if ev.0.1 == 1 {
-                ei.set_impulse(drone_transform.up() * mult.linear * ev.0.2   * time.delta_seconds());
+            if ev.1 == 1 {
+                ei.set_impulse(drone_transform.up() * mult.linear * ev.2   * time.delta_seconds());
                 fluel_loss_mult = 0.1;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.main) {
                     loc_trans.translation.z = 1.;
-                    loc_trans.translation.y = -1.5 * ev.0.2.signum();
-                    loc_trans.rotation = if ev.0.2 > 0. {Quat::from_euler(EulerRot::XYZ, PI, 0., 0.)} else {Quat::IDENTITY};
+                    loc_trans.translation.y = -1.5 * ev.2.signum();
+                    loc_trans.rotation = if ev.2 > 0. {Quat::from_euler(EulerRot::XYZ, PI, 0., 0.)} else {Quat::IDENTITY};
                     s.reset();
                 }
             }
 
-            if ev.0.1 == 2 {
-                eai.set_impulse(drone_transform.up() * -ev.0.2  * time.delta_seconds() * mult.angular);
+            if ev.1 == 2 {
+                eai.set_impulse(drone_transform.up() * -ev.2  * time.delta_seconds() * mult.angular);
                 fluel_loss_mult = 0.05;
                 if let Ok((mut loc_trans, mut s)) = spawners_q.get_mut(effs.aux) {
-                    loc_trans.translation.x = - ev.0.2.signum() * 5.5;
+                    loc_trans.translation.x = - ev.2.signum() * 5.5;
                     s.reset();
                 }
             }
 
-            if ev.0.1 == 3 {
-                dmp.0 = ev.0.2;
+            if ev.1 == 3 {
+                dmp.0 = ev.2;
             } else {
                 dmp.0 = LINEAR_DAMPING_DEFAULT;
             } 
 
             if fluel_loss_mult > 0. {
-                fluel.loss(ev.0.2.abs() * fluel_loss_mult);
+                fluel.loss(ev.2.abs() * fluel_loss_mult);
             }
 
         }
@@ -433,7 +433,7 @@ fn read_events (
                 commands.entity(*e).remove::<NeedService>();
                 commands.entity(*e).insert(UnderService);
 
-                ev_writer.send(DroneControl((*e, 3, 10.)));
+                ev_writer.send(DroneControl(*e, 3, 10.));
             },
             DroneEvent::SupplyFluel {0: (e,v) } => {
                 if let Ok(mut fluel ) = drone_q.get_mut(*e) {

@@ -18,6 +18,7 @@ mod missile;
 mod laser;
 mod crosshair;
 mod target_select;
+mod autopilot;
 // ===============
 
 #[derive(Component)]
@@ -62,14 +63,13 @@ fn main() {
         docks::DocksPlugin,
         crosshair::CrosshairPlugin,
         target_select::TargetSelectPlugin,
+        autopilot::AutoPilotPlugin,
 
 
         // WorldInspectorPlugin::new(),
         // ComponentsFromGltfPlugin{legacy_mode: false},
         // ExportRegistryPlugin::default(),
-        // RapierPhysicsPlugin::<NoUserData>::default(),
         PhysicsPlugins::default(),
-        // RapierDebugRenderPlugin::default(),
         ui::UIPlugin,
         HanabiPlugin
     ))
